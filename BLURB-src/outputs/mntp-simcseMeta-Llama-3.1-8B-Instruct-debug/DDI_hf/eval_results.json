@@ -1,7 +1,0 @@
-{
-    "epoch": 1.0,
-    "eval_F1": 0,
-    "eval_precision": 0,
-    "eval_recall": 0.0,
-    "eval_samples": 200
-}

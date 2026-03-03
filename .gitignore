@@ -37,6 +37,9 @@ cache/**
 wandb/
 wandb/**
 swanlog/
+# Ignore any file/dir whose name contains result/output
+*result*
+*output*
 
 # TensorBoard / profiling
 runs/
