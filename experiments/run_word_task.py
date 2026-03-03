@@ -37,6 +37,7 @@ from transformers.utils import send_example_telemetry
 from transformers.utils.versions import require_version
 
 from llm2vec import LLM2Vec
+from peft import LoraConfig, TaskType, get_peft_model, PeftModel
 
 require_version(
     "datasets>=1.8.0",
@@ -520,6 +521,24 @@ class CustomArguments:
             "choices": ["next_token", "same_token"],
         },
     )
+    lora_r: Optional[int] = field(
+        default=0,
+        metadata={
+            "help": "LoRA rank. Set >0 to enable LoRA fine-tuning.",
+        },
+    )
+    lora_alpha: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": "LoRA alpha (defaults to lora_r when not set).",
+        },
+    )
+    lora_dropout: float = field(
+        default=0.1,
+        metadata={
+            "help": "LoRA dropout applied to adapter (0.0–0.3 typical).",
+        },
+    )
 
 
 class StopTrainingCallback(TrainerCallback):
@@ -543,6 +562,71 @@ class WordTaskTrainer(Trainer):
 
         # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, "training_args.bin"))
+
+        # Save PEFT adapter weights if present
+        try:
+            inner = getattr(self.model, "model", None)
+            if inner is not None and isinstance(inner, PeftModel):
+                inner.save_pretrained(output_dir)
+                logger.info("Saved PEFT adapter to output directory")
+        except Exception as e:
+            logger.warning(f"Failed to save PEFT adapter: {e}")
+
+
+def initialize_peft(
+    model: PreTrainedModel,
+    config: AutoConfig,
+    lora_r: int,
+    lora_alpha: Optional[int] = None,
+    lora_dropout: float = 0.0,
+):
+    """Apply LoRA to base model, targeting common proj modules.
+
+    Uses TaskType.CAUSAL_LM for decoder-only backbones.
+    """
+    lora_alpha = lora_alpha if lora_alpha is not None else lora_r
+
+    cls_name = config.__class__.__name__
+    if "Qwen" in cls_name:
+        target_modules = [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ]
+    elif any(x in cls_name for x in ["Llama", "Mistral", "Gemma"]):
+        target_modules = [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ]
+    else:
+        target_modules = [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ]
+
+    lora_cfg = LoraConfig(
+        r=lora_r,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+        bias="none",
+        task_type=TaskType.CAUSAL_LM,
+        target_modules=target_modules,
+    )
+    return get_peft_model(model, lora_cfg)
 
 
 def main():
@@ -745,6 +829,22 @@ def main():
             attn_implementation=model_args.attn_implementation,
         )
 
+        # Initialize LoRA if requested and not already a PEFT model
+        if getattr(custom_args, "lora_r", 0) and custom_args.lora_r > 0:
+            if not isinstance(l2v.model, PeftModel):
+                lora_alpha = (
+                    custom_args.lora_alpha
+                    if getattr(custom_args, "lora_alpha", None) is not None
+                    else custom_args.lora_r
+                )
+                l2v.model = initialize_peft(
+                    l2v.model,
+                    config,
+                    lora_r=custom_args.lora_r,
+                    lora_alpha=lora_alpha,
+                    lora_dropout=getattr(custom_args, "lora_dropout", 0.0),
+                )
+
         model = ModelForWordTask(
             model=l2v.model,
             merge_subwords=model_args.merge_subwords,
@@ -768,9 +868,9 @@ def main():
             f"{model_args.model_class} is not implemented. Only 'auto' and 'custom' model_class options are valid."
         )
 
-    # only train classifier
+    # only train classifier and LoRA adapter params
     for n, p in list(model.named_parameters()):
-        if "classifier" in n:
+        if ("classifier" in n) or ("lora_" in n):
             p.requires_grad = True
         else:
             p.requires_grad = False

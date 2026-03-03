@@ -127,6 +127,10 @@ To train the model with Masked Next Token Prediction (MNTP), you can use the `ex
 python experiments/run_mntp.py train_configs/mntp/MetaLlama3.json
 ```
 
+```bash
+CUDA_VISIBLE_DEVICES=1 python experiments/run_mntp.py train_configs/mntp/BioMistral_test.json
+```
+
 The Meta-Llama-3-8B training configuration [file](train_configs/mntp/MetaLlama3.json) contains all the training hyperparameters and configurations used in our paper. 
 ```json
 {
@@ -211,6 +215,8 @@ To train the Meta-Llama-3-8B model with supervised contrastive learning, run the
 
 ```bash
 torchrun --nproc_per_node=8 experiments/run_supervised.py train_configs/supervised/MetaLlama3.json
+
+CUDA_VISIBLE_DEVICES=2,3,4,5 torchrun --standalone --nproc_per_node=4 experiments/run_supervised.py train_configs/supervised/Mistral.json
 ```
 The number of GPUs can be changed by modifying the `--nproc_per_node` argument.
 
@@ -241,10 +247,10 @@ Similar configurations are also available for [Mistral](train_configs/supervised
 
 To tune the model for word-level tasks, we define a classifier on top of the models, and only train the classifier weights. The code is adapted from HuggingFace token classification [example](https://huggingface.co/docs/transformers/en/tasks/token_classification). To train and test the classifier for Llama-2-7B MNTP model on `pos_tags` task, run the following command:
 ```bash
-python experiments/run_word_task.py train_configs/word-task/Llama2-bi-mntp.json
-python experiments/test_word_task.py --config_file test_configs/word-task/Llama2-bi-mntp.json
+CUDA_VISIBLE_DEVICES=5 python -m experiments.run_word_task train_configs/word-task/MetaLlama3.1-bi-mntp-simcse_toy.json
+python experiments/test_word_task.py --config_file test_configs/word-task/MetaLlama3.1-bi-mntp-simcse_toy.json
 ```
-The config files contain all the parameters and configurations used in our paper. For instance, `Llama2-bi-mntp.json` includes:
+The config files contain all the parameters and configurations used in our paper. For instance, `MetaLlama3.1-bi-mntp-simcse_toy.json` includes:
 ```json
 {
     "model_name_or_path": "meta-llama/Llama-2-7b-chat-hf",
@@ -281,6 +287,15 @@ python experiments/mteb_eval.py --model_name McGill-NLP/LLM2Vec-Meta-Llama-3-8B-
 --output_dir results
 ```
 
+```bash
+python /storage/BioMedNLP/llm2vec/experiments/mteb_eval_custom.py \
+    --base_model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+    --peft_model_name_or_path /storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-6 \
+    --task_name "STS16" \
+    --task_to_instructions_fp "/storage/BioMedNLP/llm2vec/test_configs/mteb/task_to_instructions.json" \
+    --output_dir "/storage/BioMedNLP/llm2vec/output/mntp/Meta-Llama-3.1-8B-Instruct/mteb_results"
+```
+
 The evaluation script supports all the models available in the [HuggingFace collection](https://huggingface.co/collections/McGill-NLP/llm2vec-660e14f536b3c8d10b3f1c34).
 
 
@@ -299,3 +314,17 @@ url={https://openreview.net/forum?id=IW1PR7vEBf}
 
 ## Bugs or questions?
 If you have any questions about the code, feel free to open an issue on the GitHub repository.
+
+
+
+## downstream tasks file path
+
+### bert series:
+- gpt-2: openai-community/gpt2
+- BioClinicalBERT: emilyalsentzer/Bio_ClinicalBERT
+- BioLinkBERT: michiyasunaga/BioLinkBERT-large
+- pubmedbert-base-embeddings: NeuML/pubmedbert-base-embeddings
+- Clinical_ModernBERT: Simonlee711/Clinical_ModernBERT
+- BioClinical-ModernBERT-large: OpenMed/OpenMed-PII-BioClinicalModern-Large-395M-v1
+- 
+### LLM-based series:

@@ -1,11 +1,85 @@
+# ------------------------------
+# Python build / packaging
+# ------------------------------
 build/
 dist/
-*.egg-info
-**/__pycache__
-wandb/**
-output/**
-cache/**
-results/**
+*.egg-info/
+*.egg
+*.whl
+
+# Byte-compiled / cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ------------------------------
+# Experiment artifacts
+# ------------------------------
 output/
+output/**
+results/
+results/**
+cache/
+cache/**
+wandb/
+wandb/**
+swanlog/
+
+# TensorBoard / profiling
+runs/
+logs/
 *.log
+profile*.json
+
+# Model checkpoints / weights
+checkpoints/
+checkpoint-*/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# ------------------------------
+# Notebooks / temporary files
+# ------------------------------
+.ipynb_checkpoints/
+*.tmp
+*.temp
+*.bak
+*~
+
+# Local scratch / accidental files
+=*
+
+# ------------------------------
+# IDE / editor
+# ------------------------------
+.vscode/
+.idea/
+.trae/
+.claude/
+
+# ------------------------------
+# OS files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Existing project-specific ignores
+# ------------------------------
 cluster_scripts/**

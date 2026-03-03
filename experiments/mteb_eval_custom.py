@@ -10,7 +10,7 @@ from mteb.models.text_formatting_utils import corpus_to_texts
 
 from llm2vec import LLM2Vec
 
-def llm2vec_instruction(instruction):
+def llm2vec_instruction(instruction): # add a colon ":" if it's not there
     if len(instruction) > 0 and instruction[-1] != ":":
         instruction = instruction.strip(".") + ":"
     return instruction

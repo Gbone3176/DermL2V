@@ -1,0 +1,12 @@
+{
+  "model_name_or_path": "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext",
+  "num_samples": 1400,
+  "k_values": [
+    10,
+    30
+  ],
+  "purity_scores": {
+    "10": 0.4135,
+    "30": 0.32561904761904764
+  }
+}
