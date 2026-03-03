@@ -1,0 +1,17 @@
+{
+    "model_name_or_path": "/cache/transformers_cache/models--princeton-nlp--Sheared-LLaMA-1.3B/snapshots/a4b76938edbf571ea7d7d9904861cbdca08809b4",
+    "peft_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp/snapshots/eb4ee4c1f922be3c5961d26eb954d0755aa9b77c",
+    "extra_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp-supervised/snapshots/a5943d406c6b016fef3f07906aac183cf1a0b47d",
+    "bidirectional": true,
+    "max_seq_length": 512,
+    "torch_dtype": "float16",
+    "attn_implementation": "sdpa",
+    "pooling_mode": "mean",
+    "dataset_name": "DermVariants",
+    "dataset_file_path": "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
+    "split": "test",
+    "output_dir": "output/Llama32_1b_instruct_CC_Finetuned/DermVariantsTs",
+    "batch_size": 16,
+    "top_k": 10,
+    "seed": 42
+}

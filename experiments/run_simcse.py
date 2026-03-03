@@ -28,6 +28,8 @@ from llm2vec.dataset.utils import load_dataset
 from llm2vec.loss.utils import load_loss
 
 from tqdm import tqdm
+import swanlab
+from swanlab.integration.transformers import SwanLabCallback
 
 transformers.logging.set_verbosity_error()
 
@@ -48,12 +50,15 @@ def initialize_peft(
     lora_dropout: float = 0.05,
     lora_modules: Optional[List[str]] = None,
 ):
-    if lora_modules is None and model.config.__class__.__name__ in [
-        "LlamaConfig",
-        "MistralConfig",
-        "GemmaConfig",
-        "Qwen2Config",
-    ]:
+    if lora_modules is None and (
+        model.config.__class__.__name__ in [
+            "LlamaConfig",
+            "MistralConfig",
+            "GemmaConfig",
+            "Qwen2Config",
+        ]
+        or ("Qwen" in model.config.__class__.__name__)
+    ):
         lora_modules = [
             "q_proj",
             "v_proj",
@@ -137,10 +142,9 @@ class ModelArguments:
         default="mean",
         metadata={
             "help": ("The pooling mode to use in the model."),
-            "choices": ["mean", "weighted_mean", "eos_token"],
+            "choices": ["mean", "weighted_mean", "eos_token","latent_pooling",],
         },
     )
-
 
 @dataclass
 class DataTrainingArguments:
@@ -303,6 +307,22 @@ def main():
             training_args,
             custom_args,
         ) = parser.parse_args_into_dataclasses()
+
+    try:
+        swanlab.init(
+            project="LLM2Vec-simcse",
+            name="_".join(training_args.output_dir.split("/")[-2:])
+            if training_args.output_dir
+            else None,
+            config={
+                **vars(model_args),
+                **vars(data_args),
+                **training_args.to_dict(),
+                **vars(custom_args),
+            },
+        )
+    except Exception:
+        pass
     if training_args.ddp_find_unused_parameters:
         kwargs = [
             DistributedDataParallelKwargs(
@@ -369,6 +389,8 @@ def main():
 
     data_collator = DefaultCollator(model)
 
+    swanlab_callback = SwanLabCallback()
+
     trainer = SimCSETrainer(
         model=model,
         args=training_args,
@@ -376,6 +398,7 @@ def main():
         data_collator=data_collator,
         tokenizer=tokenizer,
         loss_function=train_loss,
+        callbacks=[swanlab_callback],
     )
 
     if custom_args.stop_after_n_steps is not None:

@@ -1,0 +1,16 @@
+{
+  "model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/modelscope/hub/model/LLM-Research/Meta-Llama-3.1-8B-Instruct",
+  "peft_model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp/LLM2Vec-Llama-3.1-8B-Instruct/Derm1M/based-on-originalLLM/debug/checkpoint-1950",
+  "extra_model_name_or_path": ["/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp-simcse/LLM2Vec-Llama-3.1-8B-Instruct-debug/Derm1M/based-on-originalLLM-mntp-1950/mean_pooling/checkpoint-400",
+  "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp-supervised/Derm1M-Variants-withNegs/Llama-3.1-8B-Instruct-debug/Derm1M_Variants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1024_l-512_bidirectional-True_e-6_s-42_w-100_lr-1e-05_lora_r-16/checkpoint-600"],
+  "data_file": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/DermEmbeddingBenchmark/exp4-DermQA_V2/test-all.csv",
+  "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/BenchmarksOutputs/exp4-DermQA_v2/Llama31-8B-instr-train/mntp-simcse-supervised/checkpoint-600",
+  "batch_size": 32,
+  "top_k": 10,
+  "instruction": "Given a question related to dermatology, retrieve the most relevant answers: ",
+  "bidirectional": true,
+  "max_seq_length": 512,
+  "torch_dtype": "bfloat16",
+  "pooling_mode": "mean",
+  "attn_implementation": "flash_attention_2"
+}

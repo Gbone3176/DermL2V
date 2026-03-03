@@ -70,10 +70,10 @@ class ModifiedMistralDecoderLayer(MistralDecoderLayer):
 
 
 class MistralBiModel(MistralModel):
-    _no_split_modules = ["ModifiedMistralDecoderLayer"]
+    _no_split_modules = ["ModifiedMistralDecoderLayer"] # 此设置为给 accelerate / DeepSpeed 这类库用的，表示这些模块在做 model parallel / 分块加载时不能被拆分
 
     def __init__(self, config: MistralConfig):
-        if not is_transformers_attn_greater_or_equal_4_43_1():
+        if not is_transformers_attn_greater_or_equal_4_43_1(): # 保证当前 transformers 版本的 attention API 符合预期（4.43.1 之后有一轮大改）
             raise ValueError(
                 "The current implementation of LlamaEncoderModel follows modeling_llama.py of transformers version >= 4.43.1"
             )

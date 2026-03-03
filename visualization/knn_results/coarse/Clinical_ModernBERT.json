@@ -1,0 +1,12 @@
+{
+  "model_name_or_path": "Simonlee711/Clinical_ModernBERT",
+  "num_samples": 1400,
+  "k_values": [
+    10,
+    30
+  ],
+  "purity_scores": {
+    "10": 0.36807142857142855,
+    "30": 0.2839285714285714
+  }
+}

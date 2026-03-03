@@ -1,0 +1,12 @@
+{
+  "model_name_or_path": "medicalai/ClinicalBERT",
+  "num_samples": 1400,
+  "k_values": [
+    10,
+    30
+  ],
+  "purity_scores": {
+    "10": 0.3989285714285714,
+    "30": 0.30942857142857144
+  }
+}

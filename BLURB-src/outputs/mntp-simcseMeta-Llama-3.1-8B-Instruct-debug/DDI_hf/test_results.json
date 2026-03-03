@@ -1,0 +1,7 @@
+{
+    "epoch": 1.0,
+    "test_F1": 0,
+    "test_precision": 0,
+    "test_recall": 0.0,
+    "test_samples": 200
+}

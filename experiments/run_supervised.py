@@ -34,6 +34,8 @@ from llm2vec.loss.utils import load_loss
 from llm2vec.experiment_utils import generate_experiment_id
 
 from tqdm import tqdm
+import swanlab
+from swanlab.integration.transformers import SwanLabCallback
 
 transformers.logging.set_verbosity_error()
 
@@ -48,7 +50,7 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
-    if model.config._name_or_path == "meta-llama/Meta-Llama-3-8B-Instruct":
+    if model.config._name_or_path == "meta-llama/Meta-Llama-3-8B-Instruct" or isinstance(model.config, LlamaConfig):
         text = (
             "<|start_header_id|>user<|end_header_id|>\n\n" + text.strip() + "<|eot_id|>"
         )
@@ -65,6 +67,7 @@ def prepare_for_tokenization(model, text, pooling_mode="mean"):
     if model.config._name_or_path in [
         "Qwen/Qwen2-1.5B-Instruct",
         "Qwen/Qwen2-7B-Instruct",
+        "Qwen/Qwen3-8B-Embedding",
     ]:
         text = "<|im_start|>user\n" + text.strip() + "<|im_end|>"
     if pooling_mode == "eos_token":
@@ -76,7 +79,7 @@ def prepare_for_tokenization(model, text, pooling_mode="mean"):
             text = text.strip() + " </s>"
         elif isinstance(model.config, GemmaConfig):
             text = text.strip() + "<eos>"
-        elif isinstance(model.config, Qwen2Config):
+        elif isinstance(model.config, Qwen2Config) or isinstance(model.config, Qwen3Config):
             text = text.strip() + "<|endoftext|>"
     return text
 
@@ -88,12 +91,14 @@ def initialize_peft(
     lora_dropout: float = 0.05,
     lora_modules: Optional[List[str]] = None,
 ):
-    if lora_modules is None and model.config.__class__.__name__ in [
-        "LlamaConfig",
-        "MistralConfig",
-        "GemmaConfig",
-        "Qwen2Config",
-    ]:
+    if lora_modules is None and (
+        model.config.__class__.__name__ in [
+            "LlamaConfig",
+            "MistralConfig",
+            "GemmaConfig",
+            "Qwen2Config",
+        ]
+    ):  
         lora_modules = [
             "q_proj",
             "v_proj",
@@ -139,6 +144,9 @@ class ModelArguments:
         default=None,
         metadata={"help": ("The PEFT model checkpoint to add on top of base model.")},
     )
+    
+    extra_model_name_or_path: Optional[List[str]] = field(default_factory=list, metadata={"help": "Path to extra Lora models"})
+
     bidirectional: Optional[bool] = field(
         default=False,
         metadata={
@@ -312,6 +320,22 @@ class LLM2VecSupervisedTrainer(Trainer):
 
         return loss
 
+    def prediction_step(
+        self,
+        model: nn.Module,
+        inputs: Dict[str, Union[torch.Tensor, Any]],
+        prediction_loss_only: bool,
+        ignore_keys: Optional[List[str]] = None,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+        with torch.no_grad():
+            loss = self.compute_loss(model, inputs, return_outputs=False)
+
+        if prediction_loss_only:
+            return loss.detach(), None, None
+
+        features, labels = inputs
+        return loss.detach(), None, labels
+
     def get_train_dataloader(self) -> DataLoader:
         # Copying most of the code from the parent class, changing the sampler to SequentialSampler
         if self.train_dataset is None:
@@ -369,6 +393,22 @@ def main():
             training_args,
             custom_args,
         ) = parser.parse_args_into_dataclasses()
+
+    try:
+        swanlab.init(
+            project="LLM2Vec-supervised",
+            name="_".join(training_args.output_dir.split("/")[-2:])
+            if training_args.output_dir
+            else None,
+            config={
+                **vars(model_args),
+                **vars(data_args),
+                **training_args.to_dict(),
+                **vars(custom_args),
+            },
+        )
+    except Exception:
+        pass
     if training_args.ddp_find_unused_parameters:
         kwargs = [
             DistributedDataParallelKwargs(
@@ -415,7 +455,6 @@ def main():
 
     training_args.output_dir = f"{training_args.output_dir}/{experiment_id}"
 
-    # TODO: can also pass separator arg here
     train_dataset = load_dataset(
         data_args.dataset_name,
         split="train",
@@ -432,6 +471,24 @@ def main():
             disable=not accelerator.is_main_process,
         )
     ]
+
+    eval_examples = None
+    if training_args.do_eval:
+        eval_dataset = load_dataset(
+            data_args.dataset_name,
+            split="validation",
+            file_path=None,
+            effective_batch_size=training_args.per_device_eval_batch_size
+            * accelerator.num_processes,
+        )
+        eval_examples = [
+            eval_dataset[i]
+            for i in tqdm(
+                range(len(eval_dataset)),
+                desc="Loading eval examples...",
+                disable=not accelerator.is_main_process,
+            )
+        ]
 
     torch_dtype = (
         model_args.torch_dtype
@@ -463,19 +520,43 @@ def main():
 
     data_collator = DefaultCollator(model)
 
+    swanlab_callback = SwanLabCallback()
+
     trainer = LLM2VecSupervisedTrainer(
         model=model,
         args=training_args,
         train_dataset=train_examples,
+        eval_dataset=eval_examples,
         data_collator=data_collator,
         tokenizer=tokenizer,
         loss_function=train_loss,
+        callbacks=[swanlab_callback],
     )
 
     if custom_args.stop_after_n_steps is not None:
         trainer.add_callback(StopTrainingCallback(custom_args.stop_after_n_steps))
 
     trainer.train()
+
+    if training_args.do_predict:
+        test_dataset = load_dataset(
+            data_args.dataset_name,
+            split="test",
+            file_path=None,
+            effective_batch_size=training_args.per_device_eval_batch_size
+            * accelerator.num_processes,
+        )
+        test_examples = [
+            test_dataset[i]
+            for i in tqdm(
+                range(len(test_dataset)),
+                desc="Loading test examples...",
+                disable=not accelerator.is_main_process,
+            )
+        ]
+        metrics = trainer.evaluate(eval_dataset=test_examples)
+        trainer.log_metrics("test", metrics)
+        trainer.save_metrics("test", metrics)
 
 
 if __name__ == "__main__":
