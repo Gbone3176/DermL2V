@@ -9,7 +9,6 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, SequentialSampler
 
-from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.logging import get_logger
 
 import transformers
@@ -93,11 +92,13 @@ def initialize_peft(
     lora_alpha: int = 16,
     lora_dropout: float = 0.05,
     lora_modules: Optional[List[str]] = None,
+    is_main_process: bool = True,
 ):
     if lora_r <= 0:
         for _, p in model.named_parameters():
             p.requires_grad = False
-        print("LoRA is disabled (lora_r <= 0). Encoder parameters are frozen; only outer modules such as latent_pooling remain trainable.")
+        if is_main_process:
+            print("LoRA is disabled (lora_r <= 0). Encoder parameters are frozen; only outer modules such as latent_pooling remain trainable.")
         return model
     if lora_modules is None and (
         model.config.__class__.__name__ in [
@@ -130,8 +131,9 @@ def initialize_peft(
 
     model = get_peft_model(model, config)
 
-    print(f"Model's Lora trainable parameters:")
-    model.print_trainable_parameters()
+    if is_main_process:
+        print(f"Model's Lora trainable parameters:")
+        model.print_trainable_parameters()
     return model
 
 
@@ -194,8 +196,40 @@ class ModelArguments:
         default="mean",
         metadata={
             "help": ("The pooling mode to use in the model."),
-            "choices": ["mean", "weighted_mean", "eos_token"],
+            "choices": [
+                "mean",
+                "weighted_mean",
+                "eos_token",
+                "last_token",
+                "bos_token",
+                "latent_pooling",
+                "layer_fusion",
+            ],
         },
+    )
+    layer_fusion_num_layers: int = field(
+        default=4,
+        metadata={"help": "How many final hidden layers are used in layer_fusion."},
+    )
+    layer_fusion_temperature: float = field(
+        default=1.0,
+        metadata={"help": "Softmax temperature for dynamic layer_fusion routing."},
+    )
+    layer_fusion_hidden_dim: Optional[int] = field(
+        default=None,
+        metadata={"help": "Router hidden dimension for layer_fusion MLP."},
+    )
+    layer_fusion_train_only: bool = field(
+        default=True,
+        metadata={"help": "Freeze backbone and train only layer_fusion modules."},
+    )
+    layer_fusion_gamma_init: float = field(
+        default=1e-3,
+        metadata={"help": "Initial residual scaling gamma for layer_fusion."},
+    )
+    layer_fusion_gamma_learnable: bool = field(
+        default=True,
+        metadata={"help": "Whether layer_fusion residual gamma is learnable."},
     )
 
 
@@ -636,35 +670,30 @@ def main():
             eval_args,
         ) = parser.parse_args_into_dataclasses()
 
-    try:
-        swanlab.init(
-            project="LLM2Vec-supervised",
-            name="_".join(training_args.output_dir.split("/")[-2:])
-            if training_args.output_dir
-            else None,
-            config={
-                **vars(model_args),
-                **vars(data_args),
-                **training_args.to_dict(),
-                **vars(custom_args),
-            },
-        )
-    except Exception:
-        pass
-    if training_args.ddp_find_unused_parameters:
-        kwargs = [
-            DistributedDataParallelKwargs(
-                dim=0,
-                broadcast_buffers=True,
-                bucket_cap_mb=25,
-                find_unused_parameters=True,
-                check_reduction=False,
-                gradient_as_bucket_view=False,
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    rank = int(os.environ.get("RANK", "0"))
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    is_main_process = rank == 0
+
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+
+    if is_main_process:
+        try:
+            swanlab.init(
+                project="LLM2Vec-supervised",
+                name="_".join(training_args.output_dir.split("/")[-2:])
+                if training_args.output_dir
+                else None,
+                config={
+                    **vars(model_args),
+                    **vars(data_args),
+                    **training_args.to_dict(),
+                    **vars(custom_args),
+                },
             )
-        ]
-    else:
-        kwargs = []
-    accelerator = Accelerator(kwargs_handlers=kwargs)
+        except Exception:
+            pass
 
     set_seed(training_args.seed)
 
@@ -684,7 +713,7 @@ def main():
             ),
             pooling_mode=model_args.pooling_mode,
             train_batch_size=training_args.per_device_train_batch_size
-            * accelerator.num_processes
+            * world_size
             * training_args.gradient_accumulation_steps,
             max_seq_length=model_args.max_seq_length,
             bidirectional=model_args.bidirectional,
@@ -702,7 +731,7 @@ def main():
         split="train",
         file_path=data_args.dataset_file_path,
         effective_batch_size=training_args.per_device_train_batch_size
-        * accelerator.num_processes,
+        * world_size,
         dermqa_upsample_ratio=data_args.dermqa_upsample_ratio,
     )
 
@@ -711,7 +740,7 @@ def main():
         for i in tqdm(
             range(len(train_dataset)),
             desc="Loading train examples...",
-            disable=not accelerator.is_main_process,
+            disable=not is_main_process,
         )
     ]
 
@@ -722,7 +751,7 @@ def main():
             split="validation",
             file_path=data_args.dataset_file_path,
             effective_batch_size=training_args.per_device_eval_batch_size
-            * accelerator.num_processes,
+            * world_size,
             dermqa_upsample_ratio=1,
         )
         eval_examples = [
@@ -730,7 +759,7 @@ def main():
             for i in tqdm(
                 range(len(eval_dataset)),
                 desc="Loading eval examples...",
-                disable=not accelerator.is_main_process,
+                disable=not is_main_process,
             )
         ]
 
@@ -747,17 +776,43 @@ def main():
         merge_peft=True,
         pooling_mode=model_args.pooling_mode,
         max_length=model_args.max_seq_length,
+        layer_fusion_num_layers=model_args.layer_fusion_num_layers,
+        layer_fusion_temperature=model_args.layer_fusion_temperature,
+        layer_fusion_hidden_dim=model_args.layer_fusion_hidden_dim,
+        layer_fusion_train_only=model_args.layer_fusion_train_only,
+        layer_fusion_gamma_init=model_args.layer_fusion_gamma_init,
+        layer_fusion_gamma_learnable=model_args.layer_fusion_gamma_learnable,
         torch_dtype=torch_dtype,
         attn_implementation=model_args.attn_implementation,
     )
 
-    # model organization is LLM2VecModel.model -> HF Model, we have to apply PEFT to the inner model
-    model.model = initialize_peft(
-        model.model,
-        lora_r=custom_args.lora_r,
-        lora_alpha=2 * custom_args.lora_r,
-        lora_dropout=custom_args.lora_dropout,
+    fusion_only_training = (
+        model_args.pooling_mode == "layer_fusion" and model_args.layer_fusion_train_only
     )
+    if fusion_only_training:
+        if is_main_process:
+            logger.info(
+                "layer_fusion_train_only=True: skip LoRA init and keep backbone frozen; only fusion modules are trainable."
+            )
+        model.freeze_backbone_for_fusion_training()
+        backbone_trainable = [
+            name for name, p in model.model.named_parameters() if p.requires_grad
+        ]
+        if backbone_trainable:
+            preview = ", ".join(backbone_trainable[:10])
+            raise RuntimeError(
+                "fusion_only mode requires a fully frozen backbone, but found trainable "
+                f"backbone params (showing up to 10): {preview}"
+            )
+    else:
+        # model organization is LLM2VecModel.model -> HF Model, apply PEFT to the inner model
+        model.model = initialize_peft(
+            model.model,
+            lora_r=custom_args.lora_r,
+            lora_alpha=2 * custom_args.lora_r,
+            lora_dropout=custom_args.lora_dropout,
+            is_main_process=is_main_process,
+        )
 
     tokenizer = model.tokenizer
 
@@ -765,6 +820,7 @@ def main():
     trainable_params = 0
     lora_trainable_params = 0
     latent_trainable_params = 0
+    fusion_trainable_params = 0
     for name, param in model.named_parameters():
         total_params += param.numel()
         if not param.requires_grad:
@@ -774,21 +830,29 @@ def main():
             lora_trainable_params += param.numel()
         elif name.startswith("latent_attn."):
             latent_trainable_params += param.numel()
-    print(
-        f"Model trainable parameters: {trainable_params:,}, total parameters: {total_params:,}, trainable ratio: {100 * trainable_params / total_params:.4f}%"
-    )
-    print(
-        f"LoRA trainable parameters: {lora_trainable_params:,}, latent_pooling trainable parameters: {latent_trainable_params:,}"
-    )
+        elif (
+            name.startswith("layer_fusion_router.")
+            or name.startswith("layer_fusion_norm.")
+            or name == "layer_fusion_gamma"
+        ):
+            fusion_trainable_params += param.numel()
+    if is_main_process:
+        print(
+            f"Model trainable parameters: {trainable_params:,}, total parameters: {total_params:,}, trainable ratio: {100 * trainable_params / total_params:.4f}%"
+        )
+        print(
+            f"LoRA trainable parameters: {lora_trainable_params:,}, latent_pooling trainable parameters: {latent_trainable_params:,}, layer_fusion trainable parameters: {fusion_trainable_params:,}"
+        )
 
 
     train_loss = load_loss(custom_args.loss_class, scale=custom_args.loss_scale)
 
     data_collator = DefaultCollator(model)
 
-    swanlab_callback = SwanLabCallback()
-
     eval_callback = EvaluateAndLogCallback(eval_args, eval_examples)
+    callbacks = [eval_callback]
+    if is_main_process:
+        callbacks.insert(0, SwanLabCallback())
 
     trainer = LLM2VecSupervisedTrainer(
         model=model,
@@ -798,7 +862,7 @@ def main():
         data_collator=data_collator,
         tokenizer=tokenizer,
         loss_function=train_loss,
-        callbacks=[swanlab_callback, eval_callback],
+        callbacks=callbacks,
     )
 
     # Ensure callbacks needing trainer context can access it
@@ -815,7 +879,7 @@ def main():
             split="test",
             file_path=None,
             effective_batch_size=training_args.per_device_eval_batch_size
-            * accelerator.num_processes,
+            * world_size,
             dermqa_upsample_ratio=1,
         )
         test_examples = [
@@ -823,7 +887,7 @@ def main():
             for i in tqdm(
                 range(len(test_dataset)),
                 desc="Loading test examples...",
-                disable=not accelerator.is_main_process,
+                disable=not is_main_process,
             )
         ]
         metrics = trainer.evaluate(eval_dataset=test_examples)

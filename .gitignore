@@ -89,3 +89,5 @@ cluster_scripts/**
 
 # Ignore only repo-root README on GitHub
 /README.md
+
+*/Archive/**
