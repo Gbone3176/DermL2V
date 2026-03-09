@@ -14,7 +14,7 @@ CUDA_VISIBLE_DEVICES=3,5,6,7 torchrun --standalone --nproc_per_node=4 -m experim
 
 # Baseline + MixCSE + Fusion
 CUDA_VISIBLE_DEVICES=5 python -m experiments.run_supervised_fusion_withEval train_configs/Baseline_MixCSE_Fusion/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT_mixcse_fusion.json
-CUDA_VISIBLE_DEVICES=1,2,3,5 torchrun --standalone --nproc_per_node=4 -m experiments.run_supervised_fusion_withEval train_configs/Baseline_MixCSE_Fusion/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT_mixcse_fusion.json
+CUDA_VISIBLE_DEVICES=1,2 torchrun --standalone --nproc_per_node=2 -m experiments.run_supervised_fusion_withEval train_configs/Baseline_MixCSE_Fusion/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT_mixcse_fusion.json
 
 
 

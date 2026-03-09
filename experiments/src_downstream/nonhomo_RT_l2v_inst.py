@@ -183,6 +183,7 @@ def main():
 
     # Format as [instruction, text] pairs for encode function
     query_pairs = [[instruction, text] for text in query_texts]
+    # corpus_pairs = [[instruction, text] for text in corpus_texts]
     corpus_pairs = [[instruction, text] for text in corpus_texts]
 
     logger.info(f"Encoding {len(query_pairs)} queries using encode function")
