@@ -30,7 +30,7 @@ from beir.retrieval.evaluation import EvaluateRetrieval
 
 from peft import LoraConfig, get_peft_model
 
-from llm2vec import LLM2Vec
+from llm2vec import llm2vecV3 as LLM2Vec
 from llm2vec.dataset.utils import load_dataset
 from llm2vec.loss.utils import load_loss
 from llm2vec.experiment_utils import generate_experiment_id
@@ -525,38 +525,39 @@ class EvaluateAndLogCallback(TrainerCallback):
         self.eval_examples = eval_examples
 
     def on_save(self, args, state, control, **kwargs):
-        if not self.trainer.is_world_process_zero:
-            return control
+        if self.trainer.is_world_process_zero():
+            model = self.trainer.model
+            if hasattr(model, "module"):
+                model = model.module
 
-        model = self.trainer.model
-        if hasattr(model, "module"):
-            model = model.module
+            device = str(next(model.parameters()).device)
+            metrics = run_retrieval_eval(
+                model,
+                self.eval_args,
+                device=device,
+                eval_examples=self.eval_examples,
+                is_main_process=True,
+            )
+            if metrics is not None:
+                ckpt_dir = os.path.join(args.output_dir, f"checkpoint-{state.global_step}")
+                os.makedirs(ckpt_dir, exist_ok=True)
 
-        device = str(next(model.parameters()).device)
-        metrics = run_retrieval_eval(
-            model,
-            self.eval_args,
-            device=device,
-            eval_examples=self.eval_examples,
-            is_main_process=self.trainer.is_world_process_zero(),
-        )
-        if metrics is None:
-            return control
+                metrics_path = os.path.join(ckpt_dir, "metrics.json")
+                with open(metrics_path, "w") as f:
+                    json.dump(metrics, f, indent=4)
 
-        ckpt_dir = os.path.join(args.output_dir, f"checkpoint-{state.global_step}")
-        os.makedirs(ckpt_dir, exist_ok=True)
+                for k in [1, 3, 5, 10]:
+                    key = f"ndcg_at_{k}"
+                    if key in metrics:
+                        try:
+                            swanlab.log({f"eval/ndcg@{k}": metrics[key]}, step=state.global_step)
+                        except Exception:
+                            pass
 
-        metrics_path = os.path.join(ckpt_dir, "metrics.json")
-        with open(metrics_path, "w") as f:
-            json.dump(metrics, f, indent=4)
-
-        for k in [1, 3, 5, 10]:
-            key = f"ndcg_at_{k}"
-            if key in metrics:
-                try:
-                    swanlab.log({f"eval/ndcg@{k}": metrics[key]}, step=state.global_step)
-                except Exception:
-                    pass
+        # All ranks must wait for rank-0 eval to finish before resuming
+        # training, otherwise the next all_gather in the loss will deadlock.
+        if torch.distributed.is_initialized():
+            torch.distributed.barrier()
 
         return control
 
