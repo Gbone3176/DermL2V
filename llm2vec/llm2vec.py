@@ -90,6 +90,33 @@ class LLM2Vec(nn.Module):
                 num_latents=512,
                 num_heads=8,
             )
+        elif self.pooling_mode == "layer_fusion":
+            hidden_size = getattr(self.model.config, "hidden_size", None)
+            if hidden_size is None:
+                raise ValueError(
+                    "Model config must define hidden_size to use layer_fusion."
+                )
+            if self.layer_fusion_num_layers <= 0:
+                raise ValueError("layer_fusion_num_layers must be positive.")
+            router_hidden = (
+                self.layer_fusion_hidden_dim
+                if self.layer_fusion_hidden_dim is not None
+                else max(64, hidden_size // 4)
+            )
+            self.layer_fusion_norm = nn.LayerNorm(hidden_size)
+            self.layer_fusion_router = nn.Sequential(
+                nn.Linear(hidden_size, router_hidden),
+                nn.GELU(),
+                nn.Linear(router_hidden, 1),
+            )
+            # Start with near-uniform routing; let training discover useful layers.
+            nn.init.zeros_(self.layer_fusion_router[-1].weight)
+            nn.init.zeros_(self.layer_fusion_router[-1].bias)
+            gamma_tensor = torch.tensor(float(self.layer_fusion_gamma_init), dtype=torch.float32)
+            if self.layer_fusion_gamma_learnable:
+                self.layer_fusion_gamma = nn.Parameter(gamma_tensor)
+            else:
+                self.register_buffer("layer_fusion_gamma", gamma_tensor)
         else:
             self.latent_attn = None
             logger.info(f"Present pooling mode is {self.pooling_mode}. Latent attention pooling is not enabled.")
@@ -444,15 +471,53 @@ class LLM2Vec(nn.Module):
                 if attn_mask is not None:
                     attn_mask = attn_mask.to(last_hidden_states.device)
             return self.latent_attn(last_hidden_states, attention_mask=attn_mask)
+        elif self.pooling_mode == "layer_fusion":
+            if hidden_states is None:
+                raise RuntimeError("layer_fusion requires hidden_states from the backbone forward pass.")
+            if self.layer_fusion_router is None or self.layer_fusion_norm is None:
+                raise RuntimeError("layer_fusion router is not initialized.")
+            if self.layer_fusion_gamma is None:
+                raise RuntimeError("layer_fusion gamma is not initialized.")
+
+            # hidden_states: tuple of (embedding_layer, layer_1, ..., layer_N)
+            # Skip embedding layer ([1:]) and exclude the last transformer layer ([:-1])
+            # so that `fused` captures only intermediate layers — the last layer is
+            # already fully represented by `base`, avoiding double-counting.
+            all_layer_states = list(hidden_states)[1:]  # drop embedding layer output
+            intermediate_layers = all_layer_states[:-1] if len(all_layer_states) > 1 else all_layer_states
+            if not intermediate_layers:
+                raise RuntimeError("No intermediate hidden states available for layer_fusion.")
+            selected_layers = intermediate_layers[-min(self.layer_fusion_num_layers, len(intermediate_layers)) :]
+            pooled_layers = [
+                self._masked_mean_pooling(layer_h, features["attention_mask"])
+                for layer_h in selected_layers
+            ]
+            stacked = torch.stack(pooled_layers, dim=1)  # (B, K, D)
+            bsz, num_layers, hidden_dim = stacked.shape
+            flat = stacked.reshape(bsz * num_layers, hidden_dim)
+            normed = self.layer_fusion_norm(flat)
+            scores = self.layer_fusion_router(normed).reshape(bsz, num_layers)
+            temperature = max(self.layer_fusion_temperature, 1e-6)
+            weights = torch.softmax(scores / temperature, dim=-1)
+            # Weight the normalized representations so routing and fusion
+            # operate in the same space (consistent scale across layers).
+            normed_stacked = normed.reshape(bsz, num_layers, hidden_dim)
+            fused = torch.sum(normed_stacked * weights.unsqueeze(-1), dim=1)
+            base = self._masked_mean_pooling(last_hidden_states, features["attention_mask"])
+            gamma = self.layer_fusion_gamma.to(dtype=fused.dtype, device=fused.device)
+            return base + gamma * fused
         else:
             raise ValueError(f"{self.pooling_mode} is not implemented yet.")
 
     def forward(self, sentence_feature: Dict[str, Tensor]):
-        embed_mask = None
-        if "embed_mask" in sentence_feature:
-            embed_mask = sentence_feature.pop("embed_mask")
-        reps = self.model(**sentence_feature)
-        sentence_feature["embed_mask"] = embed_mask
+        has_embed_mask = "embed_mask" in sentence_feature
+        embed_mask = sentence_feature.pop("embed_mask", None)
+        model_inputs = dict(sentence_feature)
+        if self.pooling_mode == "layer_fusion":
+            model_inputs["output_hidden_states"] = True
+        reps = self.model(**model_inputs)
+        if has_embed_mask:
+            sentence_feature["embed_mask"] = embed_mask
 
         return self.get_pooling(sentence_feature, reps.last_hidden_state)
 
