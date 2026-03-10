@@ -91,3 +91,13 @@ cluster_scripts/**
 /README.md
 
 */Archive/**
+
+
+# running_files
+llm2vec/llm2vec.py
+llm2vec/loss/HardNegativeNLLLoss.py
+
+# Visualization output folders (files in visualization/ are tracked)
+visualization/embed_bert_umap/
+visualization/embed_l2v_baseline_umap/
+visualization/embed_l2v_umap/

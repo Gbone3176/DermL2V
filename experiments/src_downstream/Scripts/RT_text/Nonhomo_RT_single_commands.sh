@@ -28,7 +28,7 @@ CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstr
     --model_name_or_path "/cache/modelscope/hub/models/Qwen/Qwen3-Embedding-8B" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/Qwen3-Embedding"
 
-# 测试: RT-Derml2v  query with instruction, doc without instruction
+# 测试: RT-Derml2v  
 CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.RT_l2v \
     --instruction "Given a question related to dermatology, retrieve the most relevant answer." \
     --dataset_file_path "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
@@ -39,7 +39,7 @@ CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.RT_l2v \
     --enable_bidirectional True \
     --base_model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
     --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
-    --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1024_l-512_bidirectional-True_e-2_s-42_w-15_lr-2e-05_lora_r-16/checkpoint-180" \
+    --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1536_l-512_bidirectional-True_e-5_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-140" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/debug/"
 
 
@@ -69,3 +69,38 @@ CUDA_VISIBLE_DEVICES=1,2 python -m experiments.src_downstream.RT_l2v \
     --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp/snapshots/eb4ee4c1f922be3c5961d26eb954d0755aa9b77c" \
     --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp-supervised/snapshots/a5943d406c6b016fef3f07906aac183cf1a0b47d" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/task4/Derml2v-1p3B/"
+
+
+# TTA: Sentence repetition — baseline (r=0, no repetition)
+CUDA_VISIBLE_DEVICES=1 python -m experiments.src_downstream.nonhomo_RT_l2v_sentrep \
+    --instruction "Given a question related to dermatology, retrieve the most relevant answer." \
+    --dataset_file_path "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
+    --model_name "Derml2v-8B_MixCSE_DataV2_inst_cp_180_sentrep_r0" \
+    --pooling_mode "mean" \
+    --max_length 512 \
+    --batch_size 64 \
+    --enable_bidirectional True \
+    --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+    --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+    --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1536_l-512_bidirectional-True_e-5_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-140"\
+    --repeat_times 0 \
+    --apply_repeat_to both \
+    --output "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/downstream/debug/sentrep/"
+
+# TTA: Sentence repetition — r=1 (each text repeated twice)
+CUDA_VISIBLE_DEVICES=1 python -m experiments.src_downstream.nonhomo_RT_l2v_sentrep \
+    --instruction "Given a question related to dermatology, retrieve the most relevant answer." \
+    --dataset_file_path "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
+    --model_name "Derml2v-8B_MixCSE_DataV2_inst_cp_180_sentrep_r1" \
+    --pooling_mode "mean" \
+    --max_length 512 \
+    --batch_size 64 \
+    --enable_bidirectional True \
+    --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+    --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+    --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1536_l-512_bidirectional-True_e-5_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-140" \
+    --repeat_times 1 \
+    --apply_repeat_to both \
+    --output "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/downstream/debug/sentrep/"
+
+
