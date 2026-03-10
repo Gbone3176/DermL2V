@@ -30,7 +30,7 @@ from beir.retrieval.evaluation import EvaluateRetrieval
 
 from peft import LoraConfig, get_peft_model
 
-from llm2vec import llm2vecV3 as LLM2Vec
+from llm2vec.llm2vecV3 import LLM2Vec
 from llm2vec.dataset.utils import load_dataset
 from llm2vec.loss.utils import load_loss
 from llm2vec.experiment_utils import generate_experiment_id
@@ -49,6 +49,26 @@ logging.basicConfig(
 logger = get_logger(__name__, log_level="INFO")
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
+SWANLAB_DISABLED_VALUES = {"0", "false", "off", "no", "none", "disabled"}
+
+
+def resolve_torch_dtype(torch_dtype_name: Optional[str]):
+    valid_torch_dtypes = {"auto", None, "bfloat16", "float16", "float32"}
+    if torch_dtype_name not in valid_torch_dtypes:
+        raise ValueError(
+            "Invalid `torch_dtype`: "
+            f"{torch_dtype_name!r}. Expected one of {sorted(dtype for dtype in valid_torch_dtypes if dtype is not None)} "
+            "or None. If you meant attention backend, set `attn_implementation` instead."
+        )
+
+    if torch_dtype_name in {"auto", None}:
+        return torch_dtype_name
+
+    return getattr(torch, torch_dtype_name)
+
+
+def swanlab_enabled() -> bool:
+    return os.environ.get("SWANLAB_MODE", "disabled").strip().lower() not in SWANLAB_DISABLED_VALUES
 
 
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
@@ -679,7 +699,7 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank)
 
-    if is_main_process:
+    if is_main_process and swanlab_enabled():
         try:
             swanlab.init(
                 project="LLM2Vec-supervised",
@@ -764,11 +784,7 @@ def main():
             )
         ]
 
-    torch_dtype = (
-        model_args.torch_dtype
-        if model_args.torch_dtype in ["auto", None]
-        else getattr(torch, model_args.torch_dtype)
-    )
+    torch_dtype = resolve_torch_dtype(model_args.torch_dtype)
     model = LLM2Vec.from_pretrained(
         base_model_name_or_path=model_args.model_name_or_path,
         enable_bidirectional=model_args.bidirectional,
@@ -852,7 +868,7 @@ def main():
 
     eval_callback = EvaluateAndLogCallback(eval_args, eval_examples)
     callbacks = [eval_callback]
-    if is_main_process:
+    if is_main_process and swanlab_enabled():
         callbacks.insert(0, SwanLabCallback())
 
     trainer = LLM2VecSupervisedTrainer(
