@@ -91,7 +91,7 @@ cluster_scripts/**
 /README.md
 
 */Archive/**
-
+/research/**
 
 # running_files
 llm2vec/llm2vec.py

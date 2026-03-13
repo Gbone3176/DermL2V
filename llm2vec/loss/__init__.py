@@ -1,1 +1,2 @@
 from .HardNegativeNLLLoss import HardNegativeNLLLoss
+from .HardNegativeNLLLossV3 import HardNegativeNLLLoss as HardNegativeNLLLossV3
