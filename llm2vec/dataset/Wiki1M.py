@@ -9,7 +9,7 @@ class Wiki1M(Dataset):
         self,
         dataset_name: str = "Wiki1M",
         split: str = "validation",
-        file_path: str = "cache/wiki1m_for_simcse.txt",
+        file_path: str = "F:\datasets\text\cache\wiki1m_for_simcse\wiki1m_for_simcse.txt",
     ):
         self.dataset_name = dataset_name
         self.split = split

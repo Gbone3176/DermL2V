@@ -1,0 +1,32 @@
+{
+  "base_model_name_or_path": "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct",
+  "peft_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+  "extra_model_name_or_path": [
+      "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
+  ],
+  "do_train": true,
+  "do_eval": true,
+  "do_predict": true,
+  "train_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp2-skincap-DiseaseClassification/train.jsonl",
+  "validation_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp2-skincap-DiseaseClassification/dev.jsonl",
+  "test_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp2-skincap-DiseaseClassification/test.jsonl",
+  "per_device_train_batch_size": 16,
+  "gradient_accumulation_steps": 2,
+  "learning_rate": 2e-5,
+  "warmup_ratio": 0.1,
+  "num_train_epochs":40,
+  "max_seq_length": 512,
+  "pooling_mode": "mean",
+  "classifier_dropout": 0.1,
+  "logging_steps": 10,
+  "save_steps": 300,
+  "save_strategy": "steps",
+  "eval_steps": 50,
+  "evaluation_strategy": "steps",   
+  "output_dir": "/storage/BioMedNLP/llm2vec/output/downstream/task2/Llama31_8B_Inst/basemodel",
+  "overwrite_output_dir": true,
+  "report_to": "none",
+  "bidirectional": true,
+  "metric_name": "All",
+  "fp16": true
+}

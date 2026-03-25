@@ -1,0 +1,35 @@
+{
+    "model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/modelscope/hub/model/LLM-Research/Meta-Llama-3.1-8B-Instruct",
+    "peft_model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+    "extra_model_name_or_path": 
+    [
+        "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
+    ],
+    "do_train": true,
+    "do_eval": true,
+    "do_predict": true,
+    "train_file": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/DermEmbeddingBenchmark/exp1-DermDiseaseDescription/train.json",
+    "validation_file": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/DermEmbeddingBenchmark/exp1-DermDiseaseDescription/dev.json",
+    "test_file": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/DermEmbeddingBenchmark/exp1-DermDiseaseDescription/test.json",
+    "per_device_train_batch_size": 64,
+    "gradient_accumulation_steps": 1,
+    "learning_rate": 5e-5,
+    "warmup_ratio": 0.02,
+    "num_train_epochs": 10,
+    "max_seq_length": 512,
+    "pooling_mode": "mean",
+    "classifier_dropout": 0.1,
+    "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/BenchmarksOutputs/Meta-Llama-3.1-8B-Instruct/exp1/mntp-supervised",
+    "overwrite_output_dir": true,
+    "bidirectional": true,
+    "metric_name": "PRF1",
+    "fp16": true,
+    "report_to": ["tensorboard","swanlab"],
+    "logging_strategy": "steps",
+    "logging_steps": 10,
+    "logging_first_step": true,
+    "save_strategy": "steps",
+    "save_steps": 50,
+    "evaluation_strategy": "steps",
+    "eval_steps": 50
+}

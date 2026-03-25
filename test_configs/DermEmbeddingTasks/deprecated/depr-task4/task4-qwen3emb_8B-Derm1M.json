@@ -1,0 +1,9 @@
+{
+  "model_name_or_path": "/cache/modelscope/hub/models/Qwen/Qwen3-Embedding-8B",
+  "attn_implementation": "sdpa",
+  "data_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-DermQA/test_all.csv",
+  "output_dir": "output/dermqa-qwen3-8b",
+  "batch_size": 16,
+  "top_k": 10,
+  "seed": 1207
+}

@@ -126,6 +126,12 @@ To train the model with Masked Next Token Prediction (MNTP), you can use the `ex
 ```bash
 python experiments/run_mntp.py train_configs/mntp/MetaLlama3.json
 ```
+#### custom training
+##### BioMistral-7B
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python experiments/run_mntp.py train_configs/mntp/BioMistral.json
+```
 
 The Meta-Llama-3-8B training configuration [file](train_configs/mntp/MetaLlama3.json) contains all the training hyperparameters and configurations used in our paper. 
 ```json
@@ -211,6 +217,8 @@ To train the Meta-Llama-3-8B model with supervised contrastive learning, run the
 
 ```bash
 torchrun --nproc_per_node=8 experiments/run_supervised.py train_configs/supervised/MetaLlama3.json
+
+CUDA_VISIBLE_DEVICES=2,3,4,5 torchrun --standalone --nproc_per_node=4 experiments/run_mntp.py train_configs/mntp/Mistral.json
 ```
 The number of GPUs can be changed by modifying the `--nproc_per_node` argument.
 
@@ -281,8 +289,42 @@ python experiments/mteb_eval.py --model_name McGill-NLP/LLM2Vec-Meta-Llama-3-8B-
 --output_dir results
 ```
 
+- single task
+
+```bash
+python experiments/mteb_eval.py --model_name mistralai/Mistral-7B-Instruct-v0.2 \
+    --peft_model_name_or_path /cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp/Mistral-7B-Instruct-v0.2 \
+    --task_name STS16 \
+    --task_to_instructions_fp test_configs/mteb/task_to_instructions.json \
+    --output_dir results/mntp/Mistral-7B-Instruct-v0.2/STS16/
+```
+
+- multi-task
+
+```bash
+python /cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/experiments/mteb_eval_multi.py \
+    --base_model_name_or_path mistralai/Mistral-7B-Instruct-v0.2 \
+    --peft_model_name_or_path /cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp/Mistral-7B-Instruct-v0.2 \
+    --task_name "SciFact+ArguAna+NFCorpus+StackOverflowDupQuestions+SciDocsRR+BiorxivClusteringS2S+MedrxivClusteringS2S+TwentyNewsgroupsClustering+SprintDuplicateQuestions+Banking77Classification+EmotionClassification+MassiveIntentClassification+STS17+SICK-R+STSBenchmark" \
+    --task_to_instructions_fp "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/test_configs/mteb/task_to_instructions.json" \
+    --output_dir "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/mntp/Mistral-7B-Instruct-v0.2/mteb_subsets_results"
+```
+
+
 The evaluation script supports all the models available in the [HuggingFace collection](https://huggingface.co/collections/McGill-NLP/llm2vec-660e14f536b3c8d10b3f1c34).
 
+## subset eval
+
+| Category | Dataset |
+|----------|---------|
+| **Retrieval (3)** | SciFact, ArguAna, NFCorpus |
+| **Reranking (2)** | StackOverflowDupQuestions, SciDocsRR |
+| **Clustering (3)** | BiorxivClusteringS2S, MedrxivClusteringS2S, TwentyNewsgroupsClustering |
+| **Pair Classification (1)** | SprintDuplicateQuestions |
+| **Classification (3)** | Banking77Classification, EmotionClassification, MassiveIntentClassification |
+| **STS (3)** | STS17, SICK-R, STSBenchmark |
+| **SumEval (0)** | - |
+| **Overall** | **15 datasets** |
 
 ## Citation
 If you find our work helpful, please cite us:
@@ -299,3 +341,19 @@ url={https://openreview.net/forum?id=IW1PR7vEBf}
 
 ## Bugs or questions?
 If you have any questions about the code, feel free to open an issue on the GitHub repository.
+
+
+
+## 官方权重的路径：
+- basemodel：
+    - /cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/modelscope/hub/model/LLM-Research/Meta-Llama-3.1-8B-Instruct
+    
+- LLM2Vec的三个官方文件夹：
+    - mntp：/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291
+
+    - mntp-simcse：/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-unsup-simcse/snapshots/4ebcb17ae1317885127462e4a8ade6e6adcb23c7
+
+    - mntp-supervised：/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db
+
+- LLM2Vec4CXR的文件夹：
+    - /cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--lukeingawesome--llm2vec4cxr/snapshots/d3e466f5cce6560f6d7e32f2b29cd80014729dec

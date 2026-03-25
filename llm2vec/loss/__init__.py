@@ -1,1 +1,9 @@
 from .HardNegativeNLLLoss import HardNegativeNLLLoss
+from .HardNegativeNLLLossV0 import HardNegativeNLLLoss as HardNegativeNLLLossV0
+from .HardNegativeNLLLossV1 import HardNegativeNLLLoss as HardNegativeNLLLossV1
+from .HardNegativeNLLLossV2 import HardNegativeNLLLoss as HardNegativeNLLLossV2
+from .HardNegativeNLLLossV3 import HardNegativeNLLLoss as HardNegativeNLLLossV3
+from .HardNegativeNLLLossV4 import HardNegativeNLLLoss as HardNegativeNLLLossV4
+from .HardNegativeNLLLossV5 import HardNegativeNLLLoss as HardNegativeNLLLossV5
+from .HardNegativeNLLLossV6 import HardNegativeNLLLoss as HardNegativeNLLLossV6
+from .utils import AVAILABLE_LOSS_CLASSES, list_available_losses, load_loss

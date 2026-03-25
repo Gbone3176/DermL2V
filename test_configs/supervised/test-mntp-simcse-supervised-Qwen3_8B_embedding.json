@@ -1,0 +1,12 @@
+{
+  "model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/modelscope/models/Qwen/Qwen3-Embedding-8B",
+  "attn_implementation": "eager",
+  "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/test_results/test_Supervised/Qwen3-8B-Embedding/DermVariants/test",
+  "dataset_name": "DermVariants",
+  "split": "test",
+  "dataset_file_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/DermVariantsData",
+  "batch_size": 64,
+  "top_k": 10,
+  "seed": 42,
+  "dermqa_upsample_ratio": 1
+}

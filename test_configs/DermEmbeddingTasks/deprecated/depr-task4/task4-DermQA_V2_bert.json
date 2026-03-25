@@ -1,0 +1,12 @@
+{
+  "model_name_or_path": "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext",
+  "data_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-DermQA/test_all.csv",
+  "output_dir": "output/exp4-DermQA_v2/BiomedBERT/noinst",
+  "batch_size": 32,
+  "top_k": 10,
+  "instruction": "Given a question related to human skin diseases, retrieve the most relevant answers: ",
+  "max_seq_length": 512,
+  "torch_dtype": "float16",
+  "pooling_mode": "mean",
+  "separator": "!@#$%^&*()"
+}
