@@ -230,6 +230,14 @@ class ModelArguments:
         default=True,
         metadata={"help": "Apply LayerNorm after structured self-attention output projection."},
     )
+    selfattn_gamma_init: float = field(
+        default=1e-3,
+        metadata={"help": "Initial residual scaling gamma for structured self-attention pooling."},
+    )
+    selfattn_gamma_learnable: bool = field(
+        default=True,
+        metadata={"help": "Whether structured self-attention residual gamma is learnable."},
+    )
 
 
 @dataclass
@@ -820,6 +828,8 @@ def main():
         selfattn_num_hops=model_args.selfattn_num_hops,
         selfattn_output_dropout=model_args.selfattn_output_dropout,
         selfattn_output_layernorm=model_args.selfattn_output_layernorm,
+        selfattn_gamma_init=model_args.selfattn_gamma_init,
+        selfattn_gamma_learnable=model_args.selfattn_gamma_learnable,
         torch_dtype=torch_dtype,
         attn_implementation=model_args.attn_implementation,
     )
