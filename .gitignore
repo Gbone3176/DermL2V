@@ -99,10 +99,6 @@ cluster_scripts/**
 
 */Archive/**
 
-# running_files
-llm2vec/llm2vec.py
-llm2vec/loss/HardNegativeNLLLoss.py
-
 # Local model / binary artifacts
 latentpooling_init.pt
 
