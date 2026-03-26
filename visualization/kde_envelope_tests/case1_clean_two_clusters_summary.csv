@@ -1,0 +1,3 @@
+label,points,eps,dbscan_clusters,drawn_kde_clusters,ignored_small_clusters,noise_points
+A,180,0.1208,1,1,0,14
+B,170,0.1357,1,1,0,12

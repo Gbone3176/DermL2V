@@ -160,9 +160,7 @@ def main():
         alpha=0.7
     )
     
-    plt.title(f"UMAP Projection of Caption Embeddings (Model: {args.model_name_or_path})")
-    plt.xlabel("UMAP 1")
-    plt.ylabel("UMAP 2")
+    plt.axis("off")
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
     

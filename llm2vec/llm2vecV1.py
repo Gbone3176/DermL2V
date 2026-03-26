@@ -30,6 +30,7 @@ from .models import (
     Qwen2BiModel,
 )
 from .pooling_latent import LatentAttentionPooling
+from .pooling_structured_selfattn import StructuredSelfAttentionPooling
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,14 @@ class LLM2Vec(nn.Module):
         self,
         model: AutoModel,
         tokenizer: AutoTokenizer,
-        pooling_mode: str = "latent_pooling",
+        pooling_mode: str = "mean",
         max_length: int = 512,
         doc_max_length: int = 400,
         skip_instruction: bool = True,
+        selfattn_attn_hidden_dim: int = 512,
+        selfattn_num_hops: int = 8,
+        selfattn_output_dropout: float = 0.0,
+        selfattn_output_layernorm: bool = True,
     ):
         super().__init__()
         self.model = model
@@ -65,6 +70,7 @@ class LLM2Vec(nn.Module):
             "last_token",
             "bos_token",
             "latent_pooling",
+            "structured_selfattn",
         }
         if pooling_mode not in valid_pooling_modes:
             raise ValueError(
@@ -75,9 +81,15 @@ class LLM2Vec(nn.Module):
         self.max_length = max_length
         self.doc_max_length = doc_max_length
         self.config = model.config
+        self.selfattn_attn_hidden_dim = selfattn_attn_hidden_dim
+        self.selfattn_num_hops = selfattn_num_hops
+        self.selfattn_output_dropout = selfattn_output_dropout
+        self.selfattn_output_layernorm = selfattn_output_layernorm
 
         # Initialize latent attention pooling when requested
         self.latent_attn: Optional[LatentAttentionPooling] = None
+        self.structured_self_attn: Optional[StructuredSelfAttentionPooling] = None
+        self._pooling_aux_loss: Optional[Tensor] = None
         if self.pooling_mode == "latent_pooling":
             hidden_size = getattr(self.model.config, "hidden_size", None)
             if hidden_size is None:
@@ -90,6 +102,19 @@ class LLM2Vec(nn.Module):
                 num_latents=512,
                 num_heads=8,
             )
+        elif self.pooling_mode == "structured_selfattn":
+            hidden_size = getattr(self.model.config, "hidden_size", None)
+            if hidden_size is None:
+                raise ValueError(
+                    "Model config must define hidden_size to use structured_selfattn."
+                )
+            self.structured_self_attn = StructuredSelfAttentionPooling(
+                d_model=hidden_size,
+                attn_hidden_dim=self.selfattn_attn_hidden_dim,
+                num_hops=self.selfattn_num_hops,
+                output_dropout=self.selfattn_output_dropout,
+                output_layernorm=self.selfattn_output_layernorm,
+            )
         else:
             self.latent_attn = None
             logger.info(f"Present pooling mode is {self.pooling_mode}. Latent attention pooling is not enabled.")
@@ -100,7 +125,12 @@ class LLM2Vec(nn.Module):
         Tries `self.model`, then `self.latent_attn`, then `self` itself; falls back to
         CUDA if available, else CPU.
         """
-        for m in (getattr(self, "model", None), getattr(self, "latent_attn", None), self):
+        for m in (
+            getattr(self, "model", None),
+            getattr(self, "latent_attn", None),
+            getattr(self, "structured_self_attn", None),
+            self,
+        ):
             if m is None:
                 continue
             try:
@@ -141,7 +171,16 @@ class LLM2Vec(nn.Module):
         **kwargs,
     ):
         # pop out encoder args
-        keys = ["pooling_mode", "max_length", "doc_max_length", "skip_instruction"]
+        keys = [
+            "pooling_mode",
+            "max_length",
+            "doc_max_length",
+            "skip_instruction",
+            "selfattn_attn_hidden_dim",
+            "selfattn_num_hops",
+            "selfattn_output_dropout",
+            "selfattn_output_layernorm",
+        ]
         encoder_args = {
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
         }
@@ -241,6 +280,13 @@ class LLM2Vec(nn.Module):
             llm2vec_model._load_latent_attention_weights(
                 peft_model_name_or_path, use_safetensors=use_safetensors
             )
+        if (
+            getattr(llm2vec_model, "structured_self_attn", None) is not None
+            and llm2vec_model.pooling_mode == "structured_selfattn"
+        ):
+            llm2vec_model._load_structured_self_attention_weights(
+                peft_model_name_or_path
+            )
 
         # Ensure dtype conversion if requested
         if "torch_dtype" in kwargs and kwargs["torch_dtype"] is not None:
@@ -256,7 +302,26 @@ class LLM2Vec(nn.Module):
         result = super().to(device_or_dtype)
         if hasattr(result, "latent_attn") and result.latent_attn is not None:
             result.latent_attn = result.latent_attn.to(device_or_dtype)
+        if hasattr(result, "structured_self_attn") and result.structured_self_attn is not None:
+            result.structured_self_attn = result.structured_self_attn.to(device_or_dtype)
         return result
+
+    def reset_pooling_aux_loss(self):
+        self._pooling_aux_loss = None
+
+    def _accumulate_pooling_aux_loss(self, aux_loss: Optional[Tensor]):
+        if aux_loss is None:
+            return
+        if self._pooling_aux_loss is None:
+            self._pooling_aux_loss = aux_loss
+        else:
+            self._pooling_aux_loss = self._pooling_aux_loss + aux_loss
+
+    def consume_pooling_aux_loss(self, reset: bool = True) -> Optional[Tensor]:
+        aux_loss = self._pooling_aux_loss
+        if reset:
+            self._pooling_aux_loss = None
+        return aux_loss
 
     def _load_latent_attention_weights(self, peft_model_path: str, use_safetensors: bool = True):
         """
@@ -298,6 +363,31 @@ class LLM2Vec(nn.Module):
         except Exception as e:
             logger.warning(f"="*15 + "Training latent attention weights from scratch" + "="*15)
             logger.warning(f"there is no latent_attn weights in {peft_model_path} or {peft_model_path} is not provided.")
+
+    def _load_structured_self_attention_weights(self, model_path: Optional[str]):
+        if self.structured_self_attn is None or model_path is None:
+            return
+        try:
+            state_path = os.path.join(model_path, "structured_self_attn.pt")
+            if not os.path.exists(state_path):
+                logger.info("No structured self-attn weights found at %s", state_path)
+                return
+            state = torch.load(state_path, map_location="cpu")
+            if any(k.startswith("structured_self_attn.") for k in state.keys()):
+                state = {
+                    k.replace("structured_self_attn.", ""): v for k, v in state.items()
+                }
+            missing, unexpected = self.structured_self_attn.load_state_dict(
+                state, strict=False
+            )
+            logger.info(
+                "Loaded structured self-attn weights from %s (missing=%s, unexpected=%s)",
+                state_path,
+                len(missing),
+                len(unexpected),
+            )
+        except Exception as e:
+            logger.warning("Failed to load structured self-attn weights: %s", e)
 
     def prepare_for_tokenization(self, text):
         if self.model.config._name_or_path == "meta-llama/Meta-Llama-3-8B-Instruct" or isinstance(self.model.config, LlamaConfig):
@@ -444,6 +534,24 @@ class LLM2Vec(nn.Module):
                 if attn_mask is not None:
                     attn_mask = attn_mask.to(last_hidden_states.device)
             return self.latent_attn(last_hidden_states, attention_mask=attn_mask)
+        elif self.pooling_mode == "structured_selfattn":
+            if self.structured_self_attn is None:
+                raise RuntimeError(
+                    "structured_self_attn module is not initialized but structured_selfattn was selected."
+                )
+            attn_mask = None
+            if "embed_mask" in features and features["embed_mask"] is not None:
+                attn_mask = features["embed_mask"].to(last_hidden_states.device)
+            else:
+                attn_mask = features.get("attention_mask", None)
+                if attn_mask is not None:
+                    attn_mask = attn_mask.to(last_hidden_states.device)
+            pooled, aux_loss = self.structured_self_attn(
+                last_hidden_states,
+                attention_mask=attn_mask,
+            )
+            self._accumulate_pooling_aux_loss(aux_loss)
+            return pooled
         else:
             raise ValueError(f"{self.pooling_mode} is not implemented yet.")
 
@@ -866,6 +974,10 @@ class LLM2Vec(nn.Module):
             "max_length": self.max_length,
             "doc_max_length": self.doc_max_length,
             "skip_instruction": self.skip_instruction,
+            "selfattn_attn_hidden_dim": self.selfattn_attn_hidden_dim,
+            "selfattn_num_hops": self.selfattn_num_hops,
+            "selfattn_output_dropout": self.selfattn_output_dropout,
+            "selfattn_output_layernorm": self.selfattn_output_layernorm,
         }
 
         if save_config:
@@ -879,6 +991,14 @@ class LLM2Vec(nn.Module):
                 torch.save(self.latent_attn.state_dict(), os.path.join(output_path, "latent_attn.pt"))
             except Exception as e:
                 logger.warning(f"Failed to save latent_attn weights: {e}")
+        if getattr(self, "structured_self_attn", None) is not None:
+            try:
+                torch.save(
+                    self.structured_self_attn.state_dict(),
+                    os.path.join(output_path, "structured_self_attn.pt"),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save structured_self_attn weights: {e}")
 
     def _encode(
         self,

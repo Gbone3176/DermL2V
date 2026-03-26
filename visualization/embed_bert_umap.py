@@ -1,4 +1,11 @@
 import argparse
+import os
+import sys
+
+VENDOR_DIR = os.path.join(os.path.dirname(__file__), ".vendor")
+if os.path.isdir(VENDOR_DIR) and VENDOR_DIR not in sys.path:
+    sys.path.append(VENDOR_DIR)
+
 import torch
 import pandas as pd
 import numpy as np
@@ -8,9 +15,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 import logging
-import sys
-import os
 from tqdm import tqdm
+from visualization.plot_utils import draw_kde_envelopes
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -47,6 +53,15 @@ def _float_for_filename(x: float) -> str:
     s = f"{x:.6f}".rstrip("0").rstrip(".")
     return s.replace(".", "p") if s else "0"
 
+
+def infer_label_column(input_file: str, label_column: str | None) -> str:
+    if label_column:
+        return label_column
+    lowered = input_file.lower()
+    if "/l4/" in lowered or "level4" in lowered:
+        return "hierarchical_Level4_label"
+    return "hierarchical_Level1_label"
+
 def main():
     parser = argparse.ArgumentParser(description="Encode captions using BERT, reduce with UMAP, and visualize.")
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input CSV file.")
@@ -54,6 +69,7 @@ def main():
     parser.add_argument("--model_name_or_path", type=str, default="bert-base-uncased", help="Path to the BERT model (e.g., 'bert-base-uncased', 'microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext').")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for encoding.")
     parser.add_argument("--device", type=str, default=None, help="Device to use (cuda/cpu).")
+    parser.add_argument("--label_column", type=str, default=None, help="Optional label column override.")
     parser.add_argument("--point_size", type=int, default=10, help="Size of the points in the scatter plot.")
     parser.add_argument("--pca_n_components", type=int, default=50, help="PCA n_components before UMAP (set 0 to disable).")
     parser.add_argument("--pca_random_state", type=int, default=42, help="PCA random_state (used for randomized solver).")
@@ -62,6 +78,14 @@ def main():
     parser.add_argument("--umap_min_dist", type=float, default=0.0, help="UMAP min_dist.")
     parser.add_argument("--umap_random_state", type=int, default=42, help="UMAP random_state.")
     parser.add_argument("--umap_metric", type=str, default="cosine", help="UMAP metric.")
+    parser.add_argument("--disable_kde_envelope", action="store_true", help="Disable KDE envelopes behind each class cluster.")
+    parser.add_argument("--kde_alpha", type=float, default=0.18, help="Alpha used for KDE envelopes.")
+    parser.add_argument("--kde_levels", type=int, default=1, help="Number of filled KDE levels.")
+    parser.add_argument("--kde_thresh", type=float, default=0.25, help="Density threshold for KDE envelopes.")
+    parser.add_argument("--kde_bw_adjust", type=float, default=0.9, help="Bandwidth adjustment for KDE envelopes.")
+    parser.add_argument("--kde_min_points", type=int, default=25, help="Minimum points required in a local cluster to draw a KDE envelope.")
+    parser.add_argument("--kde_cluster_eps", type=float, default=None, help="Optional DBSCAN eps for local cluster filtering before KDE.")
+    parser.add_argument("--kde_cluster_min_samples", type=int, default=8, help="DBSCAN min_samples used to suppress tiny outlier groups.")
     
     args = parser.parse_args()
 
@@ -81,12 +105,15 @@ def main():
         logger.error(f"Failed to load CSV file: {e}")
         return
 
-    if "caption" not in df.columns or "hierarchical_Level1_label" not in df.columns:
-        logger.error("CSV must contain 'caption' and 'hierarchical_Level1_label' columns.")
+    label_column = infer_label_column(args.input_file, args.label_column)
+    logger.info(f"Using label column: {label_column}")
+
+    if "caption" not in df.columns or label_column not in df.columns:
+        logger.error(f"CSV must contain 'caption' and '{label_column}' columns.")
         return
 
     captions = df["caption"].tolist()
-    labels = df["hierarchical_Level1_label"].tolist()
+    labels = df[label_column].tolist()
     
     # Load Model
     logger.info(f"Loading model from {args.model_name_or_path}...")
@@ -157,29 +184,43 @@ def main():
     # Plotting
     logger.info("Plotting...")
     plt.figure(figsize=(12, 8))
+    ax = plt.gca()
     
-    # Use seaborn for easier plotting with labels
     plot_df = pd.DataFrame({
         'x': embedding_2d[:, 0],
         'y': embedding_2d[:, 1],
         'label': labels
     })
+    unique_labels = pd.unique(plot_df["label"])
+    palette = dict(zip(unique_labels, sns.color_palette("turbo", n_colors=len(unique_labels))))
+
+    draw_kde_envelopes(
+        ax=ax,
+        plot_df=plot_df,
+        palette=palette,
+        enabled=not args.disable_kde_envelope,
+        alpha=args.kde_alpha,
+        levels=args.kde_levels,
+        thresh=args.kde_thresh,
+        bw_adjust=args.kde_bw_adjust,
+        min_points=args.kde_min_points,
+        cluster_eps=args.kde_cluster_eps,
+        cluster_min_samples=args.kde_cluster_min_samples,
+    )
     
     sns.scatterplot(
         data=plot_df,
         x='x',
         y='y',
         hue='label',
-        palette='turbo',
+        palette=palette,
         s=args.point_size,
-        alpha=0.7
+        alpha=0.85,
+        edgecolor="white",
+        linewidth=0.5,
+        ax=ax,
     )
     
-    plt.title(f"UMAP Projection of Caption Embeddings (Model: {args.model_name_or_path})")
-    plt.xlabel("")
-    plt.ylabel("")
-    plt.xticks([])
-    plt.yticks([])
     plt.axis("off")
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()

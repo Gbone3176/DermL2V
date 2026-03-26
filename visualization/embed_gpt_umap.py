@@ -1,4 +1,11 @@
 import argparse
+import os
+import sys
+
+VENDOR_DIR = os.path.join(os.path.dirname(__file__), ".vendor")
+if os.path.isdir(VENDOR_DIR) and VENDOR_DIR not in sys.path:
+    sys.path.append(VENDOR_DIR)
+
 import torch
 import pandas as pd
 import numpy as np
@@ -8,8 +15,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.decomposition import PCA
 import logging
-import sys
-import os
 from tqdm import tqdm
 
 logging.basicConfig(
@@ -165,11 +170,6 @@ def main():
         alpha=0.7
     )
     
-    plt.title(f"UMAP Projection of Caption Embeddings (Model: {args.model_name_or_path})")
-    plt.xlabel("")
-    plt.ylabel("")
-    plt.xticks([])
-    plt.yticks([])
     plt.axis("off")
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
