@@ -120,6 +120,8 @@ visualization/knn_results/
 visualization/kde_envelope_tests/
 visualization/.vendor/
 visualization/DOSNES/all_dosnes_pointclouds.html
+visualization/DOSNES/analysis/
+visualization/DOSNES/images/
 
 # Other local outputs
 BLURB-src/outputs/
