@@ -1,5 +1,3 @@
-"这是此前所有实验所使用的版本"
-
 import json
 import logging
 import os
@@ -49,7 +47,7 @@ class LLM2Vec(nn.Module):
         self,
         model: AutoModel,
         tokenizer: AutoTokenizer,
-        pooling_mode: str = "latent_pooling",
+        pooling_mode: str = "mean",
         max_length: int = 512,
         doc_max_length: int = 400,
         skip_instruction: bool = True,
@@ -398,14 +396,6 @@ class LLM2Vec(nn.Module):
         if self.skip_instruction:
             self._skip_instruction(features)
         seq_lengths = features["attention_mask"].sum(dim=-1)
-
-        # Check for zero-length sequences
-        if (seq_lengths == 0).any():
-            raise ValueError(
-                "All attention masks are zero. This may be caused by missing separator in text data. "
-                "Please ensure input text format is correct and contains the separator '!@#$%^&*()'."
-            )
-
         if self.pooling_mode == "mean":
             return torch.stack(
                 [
@@ -588,94 +578,29 @@ class LLM2Vec(nn.Module):
     def encode_with_instruction(
         self,
         texts: List[str],
-        batch_size: int = 32,
         max_length: Optional[int] = None,
         separator: str = "!@#$%^&*()",
-        show_progress_bar: bool = False,
-        convert_to_numpy: bool = False,
-        device: Optional[str] = None,
     ) -> Tensor:
         """
         Encode texts prepared for "instruction-separator-text" pairs via a separator.
-        Supports batch processing and multi-GPU acceleration.
 
         Args:
             texts: List of texts containing instruction and content separated by `separator`.
-            batch_size: Batch size for encoding.
             max_length: Optional maximum sequence length.
             separator: Separator string.
-            show_progress_bar: Whether to show progress bar.
-            convert_to_numpy: If true, return numpy arrays instead of torch tensors.
-            device: Target device (e.g., 'cuda', 'cpu'). If None, auto-detect.
 
         Returns:
             Torch tensor of shape `(batch, hidden_size)` containing embeddings.
         """
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+        tokenized = self.tokenize_with_separator(texts, max_length=max_length, separator=separator)
 
-        if max_length is None:
-            max_length = getattr(self, "max_length", 512)
+        model_device = self._infer_device()
+        tokenized = {k: v.to(model_device) for k, v in tokenized.items()}
 
-        self.eval()
-        all_embeddings = []
+        with torch.no_grad():
+            embeddings = self(tokenized)
 
-        if torch.cuda.device_count() <= 1:
-            # Single GPU or CPU
-            self.to(device)
-            for start_index in trange(
-                0,
-                len(texts),
-                batch_size,
-                desc="Batches",
-                disable=not show_progress_bar,
-            ):
-                texts_batch = texts[start_index : start_index + batch_size]
-                embeddings = self._encode_with_separator(
-                    texts_batch,
-                    device=device,
-                    max_length=max_length,
-                    separator=separator,
-                    convert_to_numpy=convert_to_numpy,
-                )
-                all_embeddings.append(embeddings)
-        else:
-            # Multi-GPU processing
-            num_proc = torch.cuda.device_count()
-            cuda_compatible_multiprocess = mp.get_context("spawn")
-            with cuda_compatible_multiprocess.Pool(num_proc) as p:
-                texts_batches = [
-                    texts[start_index : start_index + batch_size]
-                    for start_index in range(0, len(texts), batch_size)
-                ]
-
-                progress_bar = tqdm(
-                    total=len(texts_batches),
-                    desc="Batches",
-                    disable=not show_progress_bar,
-                )
-                results = []
-
-                def update(*args):
-                    progress_bar.update()
-
-                for batch in texts_batches:
-                    results.append(
-                        p.apply_async(
-                            self._encode_with_separator,
-                            args=(batch, None, max_length, separator, convert_to_numpy, True),
-                            callback=update,
-                        )
-                    )
-
-                all_embeddings = [result.get() for result in results]
-                progress_bar.close()
-
-        all_embeddings = torch.cat(all_embeddings, dim=0)
-        all_embeddings = all_embeddings.to(torch.float32)
-        if convert_to_numpy:
-            all_embeddings = np.asarray([emb.numpy() for emb in all_embeddings])
-        return all_embeddings
+        return embeddings
 
     def encode_with_separator(
         self,
@@ -902,42 +827,6 @@ class LLM2Vec(nn.Module):
 
         with torch.no_grad():
             embeddings = self.forward(features)
-            embeddings = embeddings.detach()
-            embeddings = embeddings.cpu()
-
-        return embeddings
-
-    def _encode_with_separator(
-        self,
-        texts_batch: List[str],
-        device: Optional[str] = None,
-        max_length: Optional[int] = None,
-        separator: str = "!@#$%^&*()",
-        convert_to_numpy: bool = False,
-        multiprocessing: bool = False,
-    ):
-        """
-        Helper method to encode a batch of texts with separator for multiprocessing support.
-        """
-        if multiprocessing:
-            rank = mp.current_process()._identity[0]
-            if device is None and torch.cuda.is_available():
-                device = f"cuda:{rank % torch.cuda.device_count()}"
-
-        if device is None:
-            device = self._infer_device()
-        if max_length is None:
-            max_length = getattr(self, "max_length", 512)
-
-        self.to(device)
-        tokenized = self.tokenize_with_separator(texts_batch, max_length=max_length, separator=separator)
-        tokenized = {k: v.to(device) for k, v in tokenized.items()}
-        tokenized = {
-            k: (v.to(self.model.dtype) if v.dtype.is_floating_point else v) for k, v in tokenized.items()
-        }
-
-        with torch.no_grad():
-            embeddings = self(tokenized)
             embeddings = embeddings.detach()
             embeddings = embeddings.cpu()
 

@@ -1,7 +1,3 @@
-"""
-LLM2Vec V5 ResMLP Pooling with less parameters to refine the embedding space.
-"""
-
 import json
 import os
 import logging

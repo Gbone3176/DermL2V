@@ -448,11 +448,6 @@ def main():
                 100.0 * trainable_params / max(total_params, 1),
             )
 
-    # Ensure all params are contiguous to avoid safetensors error during checkpoint saving
-    for param in model.parameters():
-        if not param.is_contiguous():
-            param.data = param.data.contiguous()
-
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:
         sentence1_key, sentence2_key = task_to_keys[data_args.task_name]

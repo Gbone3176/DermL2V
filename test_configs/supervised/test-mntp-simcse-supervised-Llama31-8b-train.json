@@ -1,0 +1,15 @@
+{
+  "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+  "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+  "extra_model_name_or_path": ["/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"],
+  "data_file": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/Derm1M/SimilarityVariation_test_judged.jsonl",
+  "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/test_results/test_Supervised/mntp-supervised/Derm1M-Variants-withNegs/basedon-Llama-3.1-8B-Instruct-mntp-SupervisedwithEval/Derm1M_Variants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-384_l-512_bidirectional-True_e-5_s-42_w-100_lr-2e-05_lora_r-16/checkpoint-100",
+  "batch_size": 32,
+  "top_k": 10,
+  "instruction": "Given a description of a dermatological condition, retrieve the description with the highest semantic relevance: ",
+  "bidirectional": true,
+  "max_seq_length": 512,
+  "torch_dtype": "bfloat16",
+  "pooling_mode": "mean",
+  "attn_implementation": "flash_attention_2"
+}

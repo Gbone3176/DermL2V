@@ -24,7 +24,7 @@ from transformers import (
     Qwen2Config,
     set_seed,
 )
-from transformers.trainer_utils import seed_worker
+from transformers.trainer_utils import get_last_checkpoint, seed_worker
 
 from beir.retrieval.evaluation import EvaluateRetrieval
 
@@ -32,7 +32,7 @@ from peft import LoraConfig, get_peft_model
 
 from llm2vec.llm2vecV3 import LLM2Vec
 from llm2vec.dataset.utils import load_dataset
-from llm2vec.loss.utils import load_loss
+from llm2vec.loss.utils import list_available_losses, load_loss
 from llm2vec.experiment_utils import generate_experiment_id
 
 from tqdm import tqdm
@@ -50,6 +50,7 @@ logger = get_logger(__name__, log_level="INFO")
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 SWANLAB_DISABLED_VALUES = {"0", "false", "off", "no", "none", "disabled"}
+MODEL_STATE_NAME = "pytorch_model.bin"
 
 
 def resolve_torch_dtype(torch_dtype_name: Optional[str]):
@@ -68,7 +69,26 @@ def resolve_torch_dtype(torch_dtype_name: Optional[str]):
 
 
 def swanlab_enabled() -> bool:
-    return os.environ.get("SWANLAB_MODE", "disabled").strip().lower() not in SWANLAB_DISABLED_VALUES
+    return os.environ.get("SWANLAB_MODE", "cloud").strip().lower() not in SWANLAB_DISABLED_VALUES
+
+
+def disable_automatic_reporting(training_args: TrainingArguments) -> None:
+    # Keep logging integrations under explicit control so SwanLab only runs on rank 0.
+    report_to = training_args.report_to
+    if report_to is None:
+        training_args.report_to = []
+        return
+
+    if isinstance(report_to, str):
+        report_to = [report_to]
+
+    normalized_report_to = []
+    for item in report_to:
+        item_name = str(item).strip().lower()
+        if item_name in {"", "none", "all", "swanlab"}:
+            continue
+        normalized_report_to.append(item)
+    training_args.report_to = normalized_report_to
 
 
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
@@ -307,12 +327,17 @@ class CustomArguments:
     loss_class: Optional[str] = field(
         default="HardNegativeNLLLoss",
         metadata={
-            "help": "The loss class to use for training. Options: HardNegativeNLLLoss"
+            "help": f"The loss class to use for training. Options: {', '.join(list_available_losses())}"
         },
     )
 
     loss_scale: float = field(
         default=50.0, metadata={"help": "The loss scale for the loss function"}
+    )
+
+    loss_kwargs: Optional[Dict[str, Any]] = field(
+        default_factory=dict,
+        metadata={"help": "Extra keyword arguments passed to the selected loss class."},
     )
 
 
@@ -667,6 +692,8 @@ class LLM2VecSupervisedTrainer(Trainer):
         logger.info(f"Saving model checkpoint to {output_dir}")
 
         self.model.save(output_dir)
+        state_dict = state_dict if state_dict is not None else self.model.state_dict()
+        torch.save(state_dict, os.path.join(output_dir, MODEL_STATE_NAME))
 
         # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, "training_args.bin"))
@@ -699,6 +726,8 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank)
 
+    disable_automatic_reporting(training_args)
+
     if is_main_process and swanlab_enabled():
         try:
             swanlab.init(
@@ -720,6 +749,13 @@ def main():
 
     if training_args.gradient_checkpointing:
         training_args.gradient_checkpointing_kwargs = {"use_reentrant": False}
+
+    if hasattr(training_args, "save_only_model") and training_args.save_only_model:
+        if is_main_process:
+            logger.info(
+                "Detected save_only_model=True; overriding to False so checkpoints remain resumable."
+            )
+        training_args.save_only_model = False
 
     if custom_args.experiment_id is not None:
         experiment_id = custom_args.experiment_id
@@ -746,6 +782,15 @@ def main():
         )
 
     training_args.output_dir = f"{training_args.output_dir}/{experiment_id}"
+    last_checkpoint = None
+    if training_args.do_train and os.path.isdir(training_args.output_dir):
+        last_checkpoint = get_last_checkpoint(training_args.output_dir)
+        if (
+            is_main_process
+            and last_checkpoint is not None
+            and training_args.resume_from_checkpoint is None
+        ):
+            logger.info(f"Checkpoint detected, resuming training at {last_checkpoint}.")
 
     train_dataset = load_dataset(
         data_args.dataset_name,
@@ -862,7 +907,11 @@ def main():
         )
 
 
-    train_loss = load_loss(custom_args.loss_class, scale=custom_args.loss_scale)
+    train_loss = load_loss(
+        custom_args.loss_class,
+        scale=custom_args.loss_scale,
+        **(custom_args.loss_kwargs or {}),
+    )
 
     data_collator = DefaultCollator(model)
 
@@ -888,7 +937,9 @@ def main():
     if custom_args.stop_after_n_steps is not None:
         trainer.add_callback(StopTrainingCallback(custom_args.stop_after_n_steps))
 
-    trainer.train()
+    checkpoint = training_args.resume_from_checkpoint or last_checkpoint
+    trainer.train(resume_from_checkpoint=checkpoint)
+    trainer.save_state()
 
     if training_args.do_predict:
         test_dataset = load_dataset(

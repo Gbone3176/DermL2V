@@ -1,0 +1,10 @@
+{
+  "model_name_or_path": "medicalai/ClinicalBERT",
+  "max_seq_length": 512,
+  "torch_dtype": "bfloat16",
+  "pooling_mode": "mean",
+  "data_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp5-DermSimilarReportRetrival/derm_variants_qwen25vl_filtered_data.json",
+  "output_dir": "output/exp5-DermSimilarReportRetrival/ClinicalBERT",
+  "batch_size": 16,
+  "top_k": 10
+}

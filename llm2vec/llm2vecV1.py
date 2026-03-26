@@ -58,6 +58,8 @@ class LLM2Vec(nn.Module):
         selfattn_num_hops: int = 8,
         selfattn_output_dropout: float = 0.0,
         selfattn_output_layernorm: bool = True,
+        selfattn_gamma_init: float = 1e-3,
+        selfattn_gamma_learnable: bool = True,
     ):
         super().__init__()
         self.model = model
@@ -85,6 +87,8 @@ class LLM2Vec(nn.Module):
         self.selfattn_num_hops = selfattn_num_hops
         self.selfattn_output_dropout = selfattn_output_dropout
         self.selfattn_output_layernorm = selfattn_output_layernorm
+        self.selfattn_gamma_init = selfattn_gamma_init
+        self.selfattn_gamma_learnable = selfattn_gamma_learnable
 
         # Initialize latent attention pooling when requested
         self.latent_attn: Optional[LatentAttentionPooling] = None
@@ -114,6 +118,8 @@ class LLM2Vec(nn.Module):
                 num_hops=self.selfattn_num_hops,
                 output_dropout=self.selfattn_output_dropout,
                 output_layernorm=self.selfattn_output_layernorm,
+                gamma_init=self.selfattn_gamma_init,
+                gamma_learnable=self.selfattn_gamma_learnable,
             )
         else:
             self.latent_attn = None
@@ -180,6 +186,8 @@ class LLM2Vec(nn.Module):
             "selfattn_num_hops",
             "selfattn_output_dropout",
             "selfattn_output_layernorm",
+            "selfattn_gamma_init",
+            "selfattn_gamma_learnable",
         ]
         encoder_args = {
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
@@ -978,6 +986,8 @@ class LLM2Vec(nn.Module):
             "selfattn_num_hops": self.selfattn_num_hops,
             "selfattn_output_dropout": self.selfattn_output_dropout,
             "selfattn_output_layernorm": self.selfattn_output_layernorm,
+            "selfattn_gamma_init": self.selfattn_gamma_init,
+            "selfattn_gamma_learnable": self.selfattn_gamma_learnable,
         }
 
         if save_config:

@@ -14,3 +14,6 @@ Suggested file name pattern:
 
 - `YYYY-MM-DD_topic.md`
 - Example: `2026-03-18_v1_vs_v4_validation_behavior.md`
+
+Current index:
+- `2026-03-18_methods_inventory.md`

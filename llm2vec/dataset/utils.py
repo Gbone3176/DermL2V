@@ -3,8 +3,8 @@ from ..dataset import Wiki1M
 from ..dataset import Derm1M
 from ..dataset import Derm1M_SimVariants
 from ..dataset import Derm1M_Variants_Eval
+from ..dataset import DermQA
 from ..dataset import DermVariants
-
 
 def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
     """
@@ -21,6 +21,7 @@ def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
         "Derm1M": Derm1M,
         "Derm1M_SimVariants": Derm1M_SimVariants,
         "Derm1M_Variants_Eval": Derm1M_Variants_Eval,
+        "DermQA":DermQA,
         "DermVariants": DermVariants,
     }
 

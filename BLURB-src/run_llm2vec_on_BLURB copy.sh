@@ -7,14 +7,14 @@
 
 TASK="BC2GM_hf"
 MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+MODEL_PATH="${MODEL_PATH:-/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct}"
 datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 mkdir -p "$outdir"
 
 CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-  --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+  --model_name_or_path "${MODEL_PATH}" \
   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
   --train_file "${datadir}/train.json" \
   --validation_file "${datadir}/dev.json" \

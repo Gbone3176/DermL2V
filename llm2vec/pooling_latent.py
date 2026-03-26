@@ -26,7 +26,8 @@ class LatentAttentionPooling(nn.Module):
         self.d_model = d_model
         
         # Trainable latent dictionary (used as both keys and values)
-        self.latents = nn.Parameter(torch.randn(num_latents, d_model))
+        self.latents = nn.Parameter(torch.empty(num_latents, d_model))
+        nn.init.trunc_normal_(self.latents, std=0.02)
         
         # Multihead attention layer
         # batch_first=True means input shape is (batch, seq_length, hidden_size)
@@ -56,14 +57,17 @@ class LatentAttentionPooling(nn.Module):
             Pooled embeddings of shape (batch_size, d_model)
         """
         batch_size, seq_len, d_model = hidden_states.shape
-        device = hidden_states.device
-        
-        # Ensure the module is on the same device as input
-        if next(self.parameters()).device != device:
-            self.to(device)
+        if d_model != self.d_model:
+            raise ValueError(
+                f"LatentAttentionPooling: expected hidden dim {self.d_model}, got {d_model}"
+            )
         
         # Expand latents to match batch size: (batch_size, num_latents, d_model)
-        latents = self.latents.unsqueeze(0).expand(batch_size, -1, -1)
+        # Never call `self.to(...)` inside forward in DDP/FSDP training.
+        # Cast a view of latents to current hidden_states device/dtype instead.
+        latents = self.latents.unsqueeze(0).expand(batch_size, -1, -1).to(
+            device=hidden_states.device, dtype=hidden_states.dtype
+        )
         
         # Apply multihead attention
         # Use hidden_states as queries and latent dictionary as keys/values
@@ -71,7 +75,8 @@ class LatentAttentionPooling(nn.Module):
         attn_output, _ = self.multihead_attn(
             query=hidden_states, 
             key=latents, 
-            value=latents
+            value=latents,
+            need_weights=False,
         )
         attn_output = self.attn_norm(attn_output)
         residual_output = hidden_states + attn_output
@@ -80,7 +85,11 @@ class LatentAttentionPooling(nn.Module):
         # Mean pool over sequence dimension
         if attention_mask is not None:
             # Mask out padding tokens before pooling
-            mask_expanded = attention_mask.unsqueeze(-1).expand(mlp_output.size()).float()
+            mask_expanded = (
+                attention_mask.to(dtype=mlp_output.dtype, device=mlp_output.device)
+                .unsqueeze(-1)
+                .expand(mlp_output.size())
+            )
             sum_embeddings = torch.sum(mlp_output * mask_expanded, dim=1)
             sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
             pooled = sum_embeddings / sum_mask

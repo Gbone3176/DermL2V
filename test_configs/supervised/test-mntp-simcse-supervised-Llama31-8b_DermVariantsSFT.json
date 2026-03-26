@@ -1,19 +1,17 @@
 {
-  "model_name_or_path": "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct",
-  "peft_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
-  "extra_model_name_or_path": ["/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db",
-                            "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_ResCrossAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-latent_pooling_b-768_l-512_bidirectional-True_e-5_s-42_w-100_lr-2e-05_lora_r-16/checkpoint-325"],
+  "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+  "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+  "extra_model_name_or_path": ["/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"],
   "dataset_name":"DermVariants",
   "split":"test",
-  "dataset_file_path": "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
-  "output_dir": "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_MixCSE_ResCrossAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-latent_pooling_b-768_l-512_bidirectional-True_e-5_s-42_w-100_lr-2e-05_lora_r-16/checkpoint-325",
+  "dataset_file_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/DermVariantsData",
+  "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/test_results/test_Supervised/mntp-supervised/DermVariants/withEval_QAx10_MixCSE/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-768_l-512_bidirectional-True_e-3_s-42_w-0_lr-2e-05_lora_r-16/checkpoint-85",
   "batch_size": 64,
   "top_k": 10,
   "bidirectional": true,
   "max_seq_length": 512,
-  "torch_dtype": "float16",
-  "pooling_mode": "latent_pooling",
-  "attn_implementation": "sdpa",
-  "dermqa_upsample_ratio": 1,
-  "seed": 42
+  "torch_dtype": "bfloat16",
+  "pooling_mode": "mean",
+  "attn_implementation": "flash_attention_2",
+  "dermqa_upsample_ratio": 1
 }

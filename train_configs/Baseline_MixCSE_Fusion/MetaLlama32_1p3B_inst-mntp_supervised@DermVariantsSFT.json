@@ -5,7 +5,7 @@
     "bidirectional": true,
     "pooling_mode": "latent_pooling",
     "dataset_name": "DermVariants",
-    "dataset_file_path": "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
+    "dataset_file_path": "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermVariantsData",
     "dermqa_upsample_ratio":10,
     "remove_unused_columns": false,
     "learning_rate": 1e-6,

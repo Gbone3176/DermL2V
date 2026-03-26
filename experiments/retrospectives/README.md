@@ -2,6 +2,10 @@
 
 This directory is for recording experiment outcomes, failures, successes, and follow-up decisions.
 
+Quick start:
+
+- `2026-03-21_project_overview.md`: project-level overview for fast context recovery after switching machines
+
 Subfolders:
 
 - `data/`: data quality, sampling, hard negative, split, and label analysis

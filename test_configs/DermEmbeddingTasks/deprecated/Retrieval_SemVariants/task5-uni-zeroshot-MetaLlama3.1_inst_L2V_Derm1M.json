@@ -1,0 +1,13 @@
+{
+  "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+  "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+  "data_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp5-DermSimilarReportRetrival/derm_variants_qwen25vl_filtered_data.json",
+  "output_dir": "output/exp5-DermSimilarReportRetrival/Llama31-8B-instr/uni",
+  "batch_size": 16,
+  "top_k": 10,
+  "instruction": "Given a dermatology-related sentence, retrieve a semantically similar sentence: ",
+  "bidirectional": true,
+  "max_seq_length": 512,
+  "torch_dtype": "bfloat16",
+  "pooling_mode": "mean"
+}

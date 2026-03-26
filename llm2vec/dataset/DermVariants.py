@@ -27,14 +27,14 @@ DERM_EMBEDDING_PROMPTS = {
     "Retrieve the candidate description that is nearest in meaning to the input dermatology description, ignoring surface-level phrasing.",
     "Select the candidate description that most accurately reflects the same underlying dermatological condition as the input description.",
     ],
-    "VisVariants":[
+    "VisVariants":  [
     "Given a diagnosis-style dermatology text, retrieve the visual-description text that best matches it in meaning.",
     "Match a dermatological diagnosis or summary text to the most semantically aligned visual description text, and return the top match.",
     "Using the provided dermatology diagnostic statement as input, select the visual-description passage that is most relevant.",
     "From a pool of visual-description texts, return the one that most closely corresponds to the given dermatological diagnosis or summary.",
     "Identify the single visual-description text that best reflects the condition described by the provided diagnosis-oriented dermatology text.",
     ],
-    "DermQA":[
+    "DermQA": [
     "Given a dermatology-related question, select the answer that is most relevant to what the question is asking.",
     "For a question in the skin-disease domain, return the candidate answer with the highest semantic relevance.",
     "Match the provided skin-disease question to the best corresponding answer from the available answers.",
@@ -73,7 +73,7 @@ class DermVariants(Dataset):
         self,
         dataset_name: str = "DermVariants",
         split: str = "train",
-        file_path: str | None = "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
+        file_path: str | None = "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/Derm1M/DermVariantsData",
         effective_batch_size: int = 32,
         shuffle_individual_datasets: bool = True,
         separator: str = "!@#$%^&*()",
@@ -106,7 +106,6 @@ class DermVariants(Dataset):
         for dataset in DERM_EMBEDDING_PROMPTS:
             dataset_path = os.path.join(file_path, f"{dataset}_{self.split}.jsonl")
             if not os.path.exists(dataset_path):
-                logger.warning(f"Dataset file {dataset_path} not found. Skipping {dataset} for split {self.split}.")
                 continue
             logger.info(f"Loading dataset {dataset} from {dataset_path}...")
 
@@ -115,20 +114,28 @@ class DermVariants(Dataset):
 
             subtask_samples = []
             for sample in dataset_samples:
+                
                 instruction = random.choice(DERM_EMBEDDING_PROMPTS[dataset])
                 query_text = sample["original"]
                 pos_text = sample["positive_variant"]
                 neg_text = sample["hard_negative_variant"]
 
-                if dataset in ["SemVariants", "VisVariants", "SI1"]:
-                    query = f"{instruction}" + self.separator + query_text
-                    pos = f"{instruction}" + self.separator + pos_text
-                    neg = f"{instruction}" + self.separator + neg_text
-                elif dataset in ["DermQA", "SI2"]:
-                    query = f"{instruction}" + self.separator + query_text
-                    pos = self.separator + pos_text
-                    neg = self.separator + neg_text
+                ## Version 1: 分数据集加入instruction到query, pos, neg
 
+                # if dataset in ["SemVariants", "VisVariants", "SI1"]:
+                #     query = f"{instruction}" + self.separator + query_text
+                #     pos = f"{instruction}" + self.separator + pos_text
+                #     neg = f"{instruction}" + self.separator + neg_text
+                # elif dataset in ["DermQA", "SI2"]:
+                #     query = f"{instruction}" + self.separator + query_text
+                #     pos = self.separator + pos_text
+                #     neg = self.separator + neg_text
+
+                ## Version 2: 全部单边加入instruction, 实验证明, 效果更好
+                query = f"{instruction}" + self.separator + query_text
+                pos = self.separator + pos_text
+                neg = self.separator + neg_text
+                
                 subtask_samples.append(
                     DataSample(
                         id_=id_,
@@ -189,26 +196,3 @@ class DermVariants(Dataset):
             return TrainSample(
                 texts=[sample.query, sample.positive, sample.negative], label=1.0
             )
-
-
-if __name__ == "__main__":
-    split = "test"
-    dataset = DermVariants(
-        split=split,
-        file_path="/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
-        effective_batch_size=32,
-        dermqa_upsample_ratio=1,
-    )
-
-    print(f"Loaded {len(dataset)} samples for split {split}")
-    sentences = []
-    for sample in dataset:
-        sentences.extend(sample.texts)
-        print(f"query:{sample.texts[0]}")
-        print("\n")
-        print(f"pos:{sample.texts[1]}")
-        print("\n")
-        print(f"neg:{sample.texts[2]}")
-        print("\n")
-        if len(sentences) >= 12:
-            break

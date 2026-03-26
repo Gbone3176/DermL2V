@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 from torch import Tensor
-from typing import List, Optional
+from typing import Optional
 from .loss_utils import mismatched_sizes_all_gather
 
 
@@ -86,7 +86,7 @@ class HardNegativeNLLLoss(nn.Module):
         logits_pos = self.similarity_fct(full_q_reps, full_d_reps_pos) * self.scale  # [B, B]
 
         # -------- optional explicit negatives --------
-        has_neg = full_d_reps_neg is not None and full_d_reps_neg.size(0) > 0
+        has_neg = full_d_reps_neg.size(0) > 0
         if has_neg:
             logits_neg = self.similarity_fct(full_q_reps, full_d_reps_neg) * self.scale  # [B, N]
 
@@ -104,7 +104,7 @@ class HardNegativeNLLLoss(nn.Module):
 
             # Only keep the query's own mixed negative instead of every cross-pair to avoid 3D logits.
             q_norm = F.normalize(full_q_reps, p=2, dim=-1)
-            m_norm = mixed  # mixed 已 normalize
+            m_norm = F.normalize(mixed, p=2, dim=-1)  # always normalize for consistent scale with cos_sim logits
             logits_mix = ((q_norm * m_norm).sum(dim=-1) * self.scale).unsqueeze(1)  # [B,1]
 
             logits = torch.cat([logits_pos, logits_neg, logits_mix], dim=1)  # [B, B+N+1]

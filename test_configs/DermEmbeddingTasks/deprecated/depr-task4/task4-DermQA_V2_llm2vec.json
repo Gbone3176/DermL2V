@@ -1,0 +1,15 @@
+{
+  "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+  "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+  "extra_model_name_or_path": ["/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"],
+  "data_file": "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-DermQA/test_all.csv",
+  "output_dir": "output/exp4-DermQA_v2/Llama31-8B-instr/mntp-simcse",
+  "batch_size": 32,
+  "top_k": 10,
+  "instruction": "Given a question related to dermatology, retrieve the most relevant answers: ",
+  "bidirectional": true,
+  "max_seq_length": 512,
+  "torch_dtype": "float16",
+  "pooling_mode": "mean",
+  "attn_implementation": "sdpa"
+}

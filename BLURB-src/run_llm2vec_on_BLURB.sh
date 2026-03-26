@@ -6,7 +6,7 @@
 ###########################################################################################
 
 MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+MODEL_PATH="${MODEL_PATH:-/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct}"
 task="BC2GM_hf"
 datadir="/storage/LinkBERT/data/seqcls/${task}"
 outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${task}"
@@ -14,7 +14,7 @@ PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instr
 mkdir -p "$outdir"
 
 CUDA_VISIBLE_DEVICES=5 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-  --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+  --model_name_or_path "${MODEL_PATH}" \
   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
   --train_file "/storage/LinkBERT/data/tokcls/NCBI-disease_hf/train.json" \
   --validation_file "/storage/LinkBERT/data/tokcls/NCBI-disease_hf/dev.json" \
@@ -50,7 +50,7 @@ echo "==== NER (NCBI-disease) finished ===="
 ##############################################################################
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="${MODEL_PATH:-/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct}"
 # task="GAD_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${task}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${task}"
@@ -60,7 +60,7 @@ echo "==== NER (NCBI-disease) finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=5 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "${MODEL_PATH}" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
