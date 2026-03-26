@@ -101,3 +101,11 @@ llm2vec/loss/HardNegativeNLLLoss.py
 visualization/embed_bert_umap/
 visualization/embed_l2v_baseline_umap/
 visualization/embed_l2v_umap/
+visualization/embed_bert_dosnes/
+visualization/embed_bert_umap_rerender/
+visualization/embed_l2v_baseline_dosnes/
+visualization/embed_l2v_baseline_umap_rerender/
+visualization/embed_l2v_dosnes/
+visualization/embed_l2v_umap_rerender/
+visualization/knn_results/
+visualization/kde_envelope_tests/
