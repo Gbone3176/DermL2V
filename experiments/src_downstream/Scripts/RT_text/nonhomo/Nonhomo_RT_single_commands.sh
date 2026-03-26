@@ -1,13 +1,13 @@
 # RT-bert
 CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_bert.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "emilyalsentzer/Bio_ClinicalBERT" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
 
 
 # RT-ModernBert
 CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_modernbert.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "thomas-sounack/BioClinical-ModernBERT-large" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
 
@@ -15,7 +15,7 @@ CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstr
 
 # RT-gpt2
 CUDA_VISIBLE_DEVICES=5 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_gpt2.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "openai-community/gpt2" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
 
@@ -24,14 +24,14 @@ CUDA_VISIBLE_DEVICES=5 python /storage/BioMedNLP/llm2vec/experiments/src_downstr
 
 # RT-qwen3-embedding
 CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_qwen.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_name_or_path "/cache/modelscope/hub/models/Qwen/Qwen3-Embedding-8B" \
     --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/Qwen3-Embedding"
 
 # 测试: RT-Derml2v  
 CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.rt_text.nonhomo.nonhomo_RT_l2v \
     --instruction "Given a question related to dermatology, retrieve the most relevant answer." \
-    --dataset_file_path "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --dataset_file_path "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_name "Derml2v-8B_MixCSE_DataV2_inst_cp_180_test" \
     --pooling_mode "mean" \
     --max_length 512 \
@@ -46,7 +46,7 @@ CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.rt_text.nonhomo.no
 # RT-Derml2v with instruction
 CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.rt_text.nonhomo.nonhomo_RT_l2v_instdoc \
     --instruction "Given a question related to dermatology, retrieve the most relevant answer." \
-    --dataset_file_path "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl" \
+    --dataset_file_path "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_name "Llama-31-8B_baseline_MixCSE_iqid" \
     --pooling_mode "mean" \
     --max_length 512 \
@@ -102,5 +102,4 @@ CUDA_VISIBLE_DEVICES=1 python -m experiments.src_downstream.rt_text.nonhomo.nonh
     --repeat_times 1 \
     --apply_repeat_to both \
     --output "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/downstream/debug/sentrep/"
-
 

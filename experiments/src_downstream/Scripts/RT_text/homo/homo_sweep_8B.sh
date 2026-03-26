@@ -1,9 +1,9 @@
 DEVICE_NUM=5
 
 DATASET_FILE_PATH="/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl"
-BASE_MODEL_NAME_OR_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
-PEFT_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
-EXTRA_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
+BASE_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct"
+PEFT_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
+EXTRA_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
 
 # DERMA_MODEL_PATH="/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-1024_l-512_bidirectional-True_e-2_s-42_w-30_lr-2e-05_lora_r-16"
 # MODEL_NAME="Derml2v-8B_Baseline_DataV2"
@@ -60,9 +60,9 @@ CUDA_VISIBLE_DEVICES=${DEVICE_NUM} python -m experiments.src_downstream.rt_text.
     --max_length 512 \
     --batch_size 64 \
     --enable_bidirectional True \
-    --base_model_name_or_path "$BASE_MODEL_NAME_OR_PATH" \
-    --peft_model_name_or_path "$PEFT_MODEL_NAME_OR_PATH" \
-    --extra_model_name_or_path "$EXTRA_MODEL_NAME_OR_PATH" \
+    --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+    --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+    --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
     --output "$OUT_ROOT"
 
 for CP in "${CPS[@]}"; do
@@ -73,8 +73,8 @@ for CP in "${CPS[@]}"; do
         --max_length 512 \
         --batch_size 64 \
         --enable_bidirectional True \
-        --base_model_name_or_path "$BASE_MODEL_NAME_OR_PATH" \
-        --peft_model_name_or_path "$PEFT_MODEL_NAME_OR_PATH" \
-        --extra_model_name_or_path "$EXTRA_MODEL_NAME_OR_PATH" "${DERMA_MODEL_PATH}/checkpoint-${CP}" \
+        --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+        --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+        --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
         --output "$OUT_ROOT"
 done

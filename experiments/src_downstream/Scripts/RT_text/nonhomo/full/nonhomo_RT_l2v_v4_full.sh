@@ -22,18 +22,15 @@ RES_MLP_OUTPUT_NORMALIZE=True
 RES_MLP_OUTPUT_LAYERNORM=True
 
 DATASET_FILES=(
-    "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl"
+    "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl"
     "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/MedMCQA_RT_query_doc.jsonl"
     "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/MedQuAD_dermatology_qa_retrieval.jsonl"
 )
 
 # Example V4 model path settings. Replace with your actual V4 checkpoint if needed.
-BASE_MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
-PEFT_MODEL_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
-EXTRA_MODEL_PATHS=(
-    "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
-    "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/ResMLPPooling_QAx10_MixCSE_DermData2/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-res_mlp_pooling_b-2048_l-512_bidirectional-True_e-5_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-100"
-)
+BASE_MODEL_PATH="/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct"
+PEFT_MODEL_PATH="/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
+EXTRA_MODEL_PATHS=("/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db")
 MODEL_NAME="withEval_QAx10_ShareTopKSlerpMixCSE_ResMLPPool_DermData2"
 
 for DATASET_FILE in "${DATASET_FILES[@]}"; do
@@ -53,8 +50,8 @@ for DATASET_FILE in "${DATASET_FILES[@]}"; do
         --res_mlp_gamma_learnable ${RES_MLP_GAMMA_LEARNABLE} \
         --res_mlp_output_normalize ${RES_MLP_OUTPUT_NORMALIZE} \
         --res_mlp_output_layernorm ${RES_MLP_OUTPUT_LAYERNORM} \
-        --base_model_name_or_path "${BASE_MODEL_PATH}" \
-        --peft_model_name_or_path "${PEFT_MODEL_PATH}" \
-        --extra_model_name_or_path "${EXTRA_MODEL_PATHS[@]}" \
+        --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+        --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+        --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
         --output "${OUTPUT_DIR}"
 done

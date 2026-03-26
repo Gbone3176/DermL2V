@@ -10,8 +10,8 @@ for CP in "${CPS[@]}"; do
       --max_length 512 \
       --batch_size 64 \
       --enable_bidirectional True \
-      --base_model_name_or_path "/cache/transformers_cache/models--princeton-nlp--Sheared-LLaMA-1.3B/snapshots/a4b76938edbf571ea7d7d9904861cbdca08809b4" \
-      --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp/snapshots/eb4ee4c1f922be3c5961d26eb954d0755aa9b77c" \
-      --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Sheared-LLaMA-mntp-supervised/snapshots/a5943d406c6b016fef3f07906aac183cf1a0b47d" "/storage/BioMedNLP/llm2vec/output/Llama32_1p3b_mntp-supervised/withEval_QAx10_MixCSE_ResCrossAttn_DermData2/DermVariants_train_m-Sheared-LLaMA-1___3B_p-latent_pooling_b-1024_l-512_bidirectional-True_e-5_s-42_w-100_lr-2e-05_lora_r-16/checkpoint-${CP}" \
+      --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+      --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+      --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
       --output "$OUT_ROOT"
 done

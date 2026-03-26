@@ -25,7 +25,7 @@ for DATASET_FILE in "${DATASET_FILES[@]}"; do
     echo "Running ${QWEN_MODEL_NAME} on ${DATASET_FILE}"
     CUDA_VISIBLE_DEVICES=${CUDA_DEVICE} "${QWEN_PYTHON}" -m experiments.src_downstream.rt_text.nonhomo.full.nonhomo_RT_qwen_full \
         --input "${DATASET_FILE}" \
-        --model_name_or_path "${QWEN_MODEL_PATH}" \
+        --model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
         --model_name "${QWEN_MODEL_NAME}" \
         --batch_size ${BATCH_SIZE} \
         --max_length ${MAX_LENGTH} \
@@ -41,8 +41,8 @@ for DATASET_FILE in "${DATASET_FILES[@]}"; do
         --max_length ${MAX_LENGTH} \
         --batch_size ${BATCH_SIZE} \
         --enable_bidirectional True \
-        --base_model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
-        --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
-        --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "${LLM2VEC_ADAPTER_PATH}" \
+        --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
+        --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+        --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
         --output "${OUTPUT_DIR}"
 done

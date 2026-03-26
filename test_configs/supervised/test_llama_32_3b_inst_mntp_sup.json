@@ -1,7 +1,7 @@
 {
-    "model_name_or_path": "/cache/modelscope/hub/models/LLM-Research/Llama-3___2-3B-Instruct",
-    "peft_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-32-3B-Instruct-mntp/snapshots/4946d3e0a71da2da09ef5d705431a6f010cfdb9e",
-    "extra_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-32-3B-Instruct-mntp-supervised/snapshots/4d4c8558111138cb42eb1c07c9b740d924639570",
+    "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+    "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+    "extra_model_name_or_path": ["/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"],
     "bidirectional": true,
     "max_seq_length": 512,
     "torch_dtype": "float16",
