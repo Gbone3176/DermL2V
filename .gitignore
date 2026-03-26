@@ -26,6 +26,12 @@ venv/
 env/
 
 # ------------------------------
+# Datasets / local corpora
+# ------------------------------
+DermVariantsData/
+research/
+
+# ------------------------------
 # Experiment artifacts
 # ------------------------------
 output/
@@ -67,6 +73,7 @@ checkpoint-*/
 
 # Local scratch / accidental files
 =*
+tmp.ipynb
 
 # ------------------------------
 # IDE / editor
@@ -91,13 +98,15 @@ cluster_scripts/**
 /README.md
 
 */Archive/**
-/research/**
 
 # running_files
 llm2vec/llm2vec.py
 llm2vec/loss/HardNegativeNLLLoss.py
 
-# Visualization output folders (files in visualization/ are tracked)
+# Local model / binary artifacts
+latentpooling_init.pt
+
+# Visualization artifacts and vendored local deps
 visualization/embed_bert_umap/
 visualization/embed_l2v_baseline_umap/
 visualization/embed_l2v_umap/
@@ -109,3 +118,8 @@ visualization/embed_l2v_dosnes/
 visualization/embed_l2v_umap_rerender/
 visualization/knn_results/
 visualization/kde_envelope_tests/
+visualization/.vendor/
+visualization/DOSNES/all_dosnes_pointclouds.html
+
+# Other local outputs
+BLURB-src/outputs/
