@@ -102,22 +102,8 @@ cluster_scripts/**
 # Local model / binary artifacts
 latentpooling_init.pt
 
-# Visualization artifacts and vendored local deps
-visualization/embed_bert_umap/
-visualization/embed_l2v_baseline_umap/
-visualization/embed_l2v_umap/
-visualization/embed_bert_dosnes/
-visualization/embed_bert_umap_rerender/
-visualization/embed_l2v_baseline_dosnes/
-visualization/embed_l2v_baseline_umap_rerender/
-visualization/embed_l2v_dosnes/
-visualization/embed_l2v_umap_rerender/
-visualization/knn_results/
-visualization/kde_envelope_tests/
-visualization/.vendor/
-visualization/DOSNES/all_dosnes_pointclouds.html
-visualization/DOSNES/analysis/
-visualization/DOSNES/images/
+# Visualization
+visualization/
 
 # Other local outputs
 BLURB-src/outputs/
