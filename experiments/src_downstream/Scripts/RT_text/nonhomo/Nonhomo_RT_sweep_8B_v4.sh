@@ -17,7 +17,7 @@ for ((i=10; i<=140; i+=10)); do
 done
 
 POOLING_MODE="res_mlp_pooling"
-OUT_ROOT="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/${MODEL_NAME}/$([ "$USE_INST" -eq 1 ] && echo "inst" || echo "woinst")/"
+OUT_ROOT="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/${MODEL_NAME}/$([ "$USE_INST" -eq 1 ] && echo "inst" || echo "woinst")/"
 mkdir -p "$OUT_ROOT"
 
 BASE_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct"

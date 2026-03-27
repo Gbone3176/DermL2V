@@ -143,7 +143,7 @@ DOC_ADD_INST_FLAG=$([ "$DOC_ADD_INST" -eq 1 ] && echo "True" || echo "False")
 POOLING_MODE=$(echo "$DERMA_MODEL_PATH" | sed -n 's/.*_p-\(.*\)_b-.*/\1/p')
 echo "POOLING_MODE: $POOLING_MODE"
 
-OUT_ROOT_BASE="${OUT_ROOT_BASE:-output/downstream/RT_text}"
+OUT_ROOT_BASE="${OUT_ROOT_BASE:-output/downstream/RT_text/nonhomo}"
 OUT_ROOT="${OUT_ROOT:-${OUT_ROOT_BASE}/${MODEL_NAME}/${OUT_MODE}/}"
 mkdir -p "$OUT_ROOT"
 

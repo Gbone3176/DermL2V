@@ -2,7 +2,7 @@
 
 CUDA_DEVICE=1
 PYTHON_BIN="/opt/conda/envs/qwen3/bin/python"
-OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/full"
+OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/full"
 MAX_LENGTH=512
 BATCH_SIZE=64
 ATTN_IMPLEMENTATION="sdpa"

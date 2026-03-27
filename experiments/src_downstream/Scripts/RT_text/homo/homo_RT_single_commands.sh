@@ -1,30 +1,32 @@
+# Run from repo root:
+# cd /storage/BioMedNLP/llm2vec
 
 # RT-bert
-CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/homo/homo_RT_bert.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+CUDA_VISIBLE_DEVICES=4 python -m experiments.src_downstream.rt_text.homo.homo_RT_bert \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
     --model_path "NeuML/pubmedbert-base-embeddings" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/VisMatch"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/combined"
 
 
 # RT-ModernBert(使用qwen3环境)
-CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/homo/homo_RT_modernbert.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+CUDA_VISIBLE_DEVICES=4 python -m experiments.src_downstream.rt_text.homo.homo_RT_modernbert \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
     --model_path "OpenMed/OpenMed-PII-BioClinicalModern-Large-395M-v1" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/VisMatch"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/combined"
 
 
 # RT-gpt2
-CUDA_VISIBLE_DEVICES=5 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/homo/homo_RT_gpt2.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+CUDA_VISIBLE_DEVICES=5 python -m experiments.src_downstream.rt_text.homo.homo_RT_gpt2 \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
     --model_path "openai-community/gpt2" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/VisMatch"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/combined"
 
 
 # RT-qwen3-embedding
-CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/homo/homo_RT_qwen3_emb.py \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
-    --model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/VisMatch"
+CUDA_VISIBLE_DEVICES=1 python -m experiments.src_downstream.rt_text.homo.homo_RT_qwen3_emb \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+    --model_name_or_path "/cache/modelscope/hub/models/Qwen/Qwen3-Embedding-0.6B" \
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/combined"
 
 
 ##Derml2v_baseline_DataV1
@@ -44,7 +46,7 @@ POOLING=latent_pooling
 
 # RT-Derml2v
 CUDA_VISIBLE_DEVICES=3 python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
     --model_name "${MODEL_NAME}" \
     --pooling_mode "${POOLING}" \
     --max_length 512 \
@@ -57,7 +59,7 @@ CUDA_VISIBLE_DEVICES=3 python -m experiments.src_downstream.rt_text.homo.homo_RT
 
 # RT-DermL2V-1.3B
 CUDA_VISIBLE_DEVICES=1,2 python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
-    --input "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
+    --vis_dataset "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl" \
     --model_name "DermL2V-1.3B_MixCSE_ResAttn_cp-0" \
     --pooling_mode "mean" \
     --max_length 512 \
@@ -66,4 +68,4 @@ CUDA_VISIBLE_DEVICES=1,2 python -m experiments.src_downstream.rt_text.homo.homo_
     --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
     --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
     --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/Derml2v-1p3B/"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/Derml2v-1p3B/"

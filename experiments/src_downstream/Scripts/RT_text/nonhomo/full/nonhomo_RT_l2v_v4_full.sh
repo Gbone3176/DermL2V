@@ -5,7 +5,7 @@
 
 CUDA_DEVICE=0
 PYTHON_BIN="/opt/conda/envs/l2v/bin/python"
-OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/full"
+OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/full"
 
 INSTRUCTION="Given a dermatologic question, return the answer that most closely corresponds to the information being asked for."
 POOLING_MODE="res_mlp_pooling"
