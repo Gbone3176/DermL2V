@@ -200,6 +200,12 @@ class ModelArguments:
             "with private models)."
         },
     )
+    linear_probing: bool = field(
+        default=False,
+        metadata={
+            "help": "If true, freeze the backbone encoder and train only the classification head (linear probing)."
+        },
+    )
 
 
 from transformers.trainer_callback import TrainerCallback
@@ -408,6 +414,7 @@ def main():
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
+        ignore_mismatched_sizes=True,
     )
     
     # GPT2 specific: resize embeddings if we added a new pad token
@@ -415,6 +422,25 @@ def main():
     
     # GPT2 specific: ensure model config has correct pad_token_id
     model.config.pad_token_id = tokenizer.pad_token_id
+
+    # Linear probing: freeze backbone and train classification head only.
+    if model_args.linear_probing:
+        # For GPT2ForSequenceClassification, the backbone is model.transformer
+        backbone = getattr(model, "transformer", None) or getattr(model, "base_model", None)
+        if backbone is None:
+            logger.warning("linear_probing=True but cannot find backbone; skipping freeze.")
+        else:
+            for p in backbone.parameters():
+                p.requires_grad = False
+
+            total_params = sum(p.numel() for p in model.parameters())
+            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            logger.info(
+                "Linear probing enabled: frozen backbone; trainable params: %d / %d (%.4f%%)",
+                trainable_params,
+                total_params,
+                100.0 * trainable_params / max(total_params, 1),
+            )
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:

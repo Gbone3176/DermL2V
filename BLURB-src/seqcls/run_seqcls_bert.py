@@ -205,6 +205,12 @@ class ModelArguments:
             "with private models)."
         },
     )
+    linear_probing: bool = field(
+        default=False,
+        metadata={
+            "help": "If true, freeze the backbone encoder and train only the classification head (linear probing)."
+        },
+    )
 
 
 from transformers.trainer_callback import TrainerCallback
@@ -420,7 +426,27 @@ def main():
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
+        ignore_mismatched_sizes=True,
     )
+
+    # Linear probing: freeze backbone and train classification head only.
+    if model_args.linear_probing:
+        base_model = getattr(model, "base_model", None)
+        if base_model is None:
+            logger.warning("linear_probing=True but model has no `base_model`; skipping backbone freezing.")
+        else:
+            for p in base_model.parameters():
+                p.requires_grad = False
+
+            total_params = sum(p.numel() for p in model.parameters())
+            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            logger.info(
+                "Linear probing enabled: frozen backbone `%s`; trainable params: %d / %d (%.4f%%)",
+                getattr(model, "base_model_prefix", "base_model"),
+                trainable_params,
+                total_params,
+                100.0 * trainable_params / max(total_params, 1),
+            )
 
     # Preprocessing the raw_datasets
     if data_args.task_name is not None:
@@ -658,11 +684,6 @@ def main():
             data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
         )
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
-
-        # Ensure all params are contiguous before saving to avoid safetensors error
-        for param in model.parameters():
-            if not param.is_contiguous():
-                param.data = param.data.contiguous()
 
         trainer.save_model()  # Saves the tokenizer too for easy upload
 

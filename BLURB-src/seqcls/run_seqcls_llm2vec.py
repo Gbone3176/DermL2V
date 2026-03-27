@@ -202,6 +202,14 @@ class ModelArguments:
 
 @dataclass
 class CustomArguments:
+    model_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Custom model name used for the output folder. If not set, derived from base_model_name_or_path."},
+    )
+    linear_probing: bool = field(
+        default=False,
+        metadata={"help": "If True, freeze entire encoder and only train the classifier head (linear probing)."},
+    )
     bidirectional: bool = field(
         default=True,
         metadata={"help": "Whether to use bidirectional model."},
@@ -361,8 +369,11 @@ class SeqClsLLM2VecTrainer(SeqClsTrainer):
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
 
+        # Unwrap DDP if needed
+        unwrapped = self.model.module if hasattr(self.model, "module") else self.model
+
         # Save classifier head state_dict and tokenizer (efficient)
-        torch.save(self.model.classifier.state_dict(), os.path.join(output_dir, "classifier_state.pt"))
+        torch.save(unwrapped.classifier.state_dict(), os.path.join(output_dir, "classifier_state.pt"))
         if self.tokenizer is not None:
             self.tokenizer.save_pretrained(output_dir)
 
@@ -371,7 +382,7 @@ class SeqClsLLM2VecTrainer(SeqClsTrainer):
 
         # Save PEFT adapter weights if present
         try:
-            inner = getattr(self.model, "model", None)
+            inner = getattr(unwrapped, "model", None)
             if inner is not None and isinstance(inner, PeftModel):
                 inner.save_pretrained(output_dir)
                 logger.info("Saved PEFT adapter to output directory")
@@ -431,7 +442,7 @@ class RealTimeLoggingCallback(TrainerCallback):
                 pass 
 
     def on_evaluate(self, args, state, control, metrics=None, **kwargs):
-        if metrics:
+        if metrics and args.local_rank <= 0:
             # Add step/epoch info if missing
             if "step" not in metrics:
                 metrics["step"] = state.global_step
@@ -454,9 +465,14 @@ def main():
     if custom_args.pooling_mode == "weight":
         custom_args.pooling_mode = "weighted_mean"
 
+    # Set CUDA device for DDP before any model loading
+    if training_args.local_rank >= 0:
+        torch.cuda.set_device(training_args.local_rank)
+        logger.info(f"Rank {training_args.local_rank}: using GPU {torch.cuda.current_device()}")
+
     # Append model name to output_dir if not already present
-    if training_args.output_dir and model_args.base_model_name_or_path:
-        model_name = model_args.base_model_name_or_path.rstrip("/").split("/")[-1]
+    model_name = custom_args.model_name or model_args.base_model_name_or_path.rstrip("/").split("/")[-1]
+    if training_args.output_dir and model_name:
         if not training_args.output_dir.endswith(model_name):
             training_args.output_dir = os.path.join(training_args.output_dir, model_name)
 
@@ -479,19 +495,20 @@ def main():
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
 
-    # Initialize SwanLab
-    try:
-        swanlab.init(
-            project="DownstreamTask",
-            name=os.path.basename(training_args.output_dir),
-            config={
-                **vars(model_args),
-                **vars(data_args),
-                **training_args.to_dict(),
-            },
-        )
-    except Exception as e:
-        logger.warning(f"Failed to initialize SwanLab: {e}")
+    # Initialize SwanLab (main process only)
+    if training_args.local_rank <= 0:
+        try:
+            swanlab.init(
+                project="DownstreamTask",
+                name=os.path.basename(training_args.output_dir),
+                config={
+                    **vars(model_args),
+                    **vars(data_args),
+                    **training_args.to_dict(),
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize SwanLab: {e}")
 
     # Detect last checkpoint
     last_checkpoint = None
@@ -569,7 +586,8 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
     # Build llm2vec and base model
-    l2v = LLM2Vec.from_pretrained(
+    # In DDP mode, load and merge on CPU first, then move to correct GPU
+    l2v_kwargs = dict(
         base_model_name_or_path=model_args.base_model_name_or_path,
         peft_model_name_or_path=model_args.peft_model_name_or_path,
         extra_model_name_or_path=model_args.extra_model_name_or_path,
@@ -579,7 +597,14 @@ def main():
         attn_implementation=model_args.attn_implementation,
         max_length=data_args.max_seq_length,
         enable_bidirectional=custom_args.bidirectional,
+        torch_dtype=torch.float16,
     )
+    if training_args.local_rank >= 0:
+        # DDP: load on CPU, PEFT merge on CPU, then move to rank's GPU
+        l2v_kwargs["device_map"] = "cpu"
+    l2v = LLM2Vec.from_pretrained(**l2v_kwargs)
+    if training_args.local_rank >= 0:
+        l2v = l2v.to(f"cuda:{training_args.local_rank}")
     # base_model = l2v.model
 
     # Use llm2vec tokenizer for consistent special tokens and padding side
@@ -606,12 +631,20 @@ def main():
         classifier_dropout=custom_args.classifier_dropout,
     )
 
-    # Freeze encoder params except classifier head and LoRA adapter weights
-    for n, p in list(model.named_parameters()):
-        if ("classifier" in n) or ("lora_" in n):
-            p.requires_grad = True
-        else:
-            p.requires_grad = False
+    # Freeze parameters based on training mode
+    if custom_args.linear_probing:
+        # Linear probing: only classifier head is trainable
+        for n, p in list(model.named_parameters()):
+            p.requires_grad = "classifier" in n
+        logger.info("Linear probing mode: only classifier head is trainable.")
+    else:
+        # Fine-tuning: classifier + LoRA adapter weights are trainable
+        for n, p in list(model.named_parameters()):
+            if ("classifier" in n) or ("lora_" in n):
+                p.requires_grad = True
+            else:
+                p.requires_grad = False
+        logger.info("Fine-tuning mode: classifier + LoRA adapters are trainable.")
             
     # 打印模型的可训练参数以及全部参数
     def count_parameters(model):

@@ -7,14 +7,14 @@
 
 TASK="BC2GM_hf"
 MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+MODEL_PATH="${MODEL_PATH:-/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct}"
 datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 mkdir -p "$outdir"
 
 CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-  --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+  --model_name_or_path "${MODEL_PATH}" \
   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
   --train_file "${datadir}/train.json" \
   --validation_file "${datadir}/dev.json" \
@@ -43,14 +43,14 @@ echo "==== NER $TASK finished ===="
 
 # TASK="BC5CDR-chem_hf"
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 # PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 # mkdir -p "$outdir"
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --train_file "${datadir}/train.json" \
 #   --validation_file "${datadir}/dev.json" \
@@ -79,14 +79,14 @@ echo "==== NER $TASK finished ===="
 
 # TASK="BC5CDR-disease_hf"
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 # PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 # mkdir -p "$outdir"
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --train_file "${datadir}/train.json" \
 #   --validation_file "${datadir}/dev.json" \
@@ -115,14 +115,14 @@ echo "==== NER $TASK finished ===="
 
 # TASK="ebmnlp_hf"
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 # PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 # mkdir -p "$outdir"
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --train_file "${datadir}/train.json" \
 #   --validation_file "${datadir}/dev.json" \
@@ -151,14 +151,14 @@ echo "==== NER $TASK finished ===="
 
 # TASK="JNLPBA_hf"
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 # PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 # mkdir -p "$outdir"
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --train_file "${datadir}/train.json" \
 #   --validation_file "${datadir}/dev.json" \
@@ -187,14 +187,14 @@ echo "==== NER $TASK finished ===="
 
 # TASK="NCBI-disease_hf"
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
 # PEFT_PATH="/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9"
 # mkdir -p "$outdir"
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.tokcls.run_ner_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --train_file "${datadir}/train.json" \
 #   --validation_file "${datadir}/dev.json" \
@@ -228,7 +228,7 @@ echo "==== NER $TASK finished ===="
 # ##############################################################################
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="bioasq_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -238,7 +238,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -267,7 +267,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="BIOSSES_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -277,7 +277,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -307,7 +307,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="pubmedqa_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -317,7 +317,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -346,7 +346,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="chemprot_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -356,7 +356,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -385,7 +385,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="DDI_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -395,7 +395,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -424,7 +424,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="GAD_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -434,7 +434,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \
@@ -463,7 +463,7 @@ echo "==== NER $TASK finished ===="
 
 
 # MODEL="mntp-simcseMeta-Llama-3.1-8B-Instruct-debug"
-# MODEL_PATH="/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+# MODEL_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
 # TASK="HoC_hf"
 # datadir="/storage/LinkBERT/data/seqcls/${TASK}"
 # outdir="/storage/BioMedNLP/llm2vec/BLURB-src/outputs/${MODEL}/${TASK}"
@@ -473,7 +473,7 @@ echo "==== NER $TASK finished ===="
 # ############### ===== Debug: SeqCls-2sts (BLURB pubmedqa_hf llm2vec) =====
 
 # CUDA_VISIBLE_DEVICES=0 python3 -m BLURB-src.seqcls.run_seqcls_llm2vec \
-#   --model_name_or_path "/root/.cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+#   --model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
 #   --peft_addr "/storage/BioMedNLP/llm2vec/output/mntp-simcse/Meta-Llama-3.1-8B-Instruct-debug/checkpoint-9" \
 #   --do_train \
 #   --do_eval \

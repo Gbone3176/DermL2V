@@ -1,0 +1,17 @@
+{
+    "model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct",
+    "peft_model_name_or_path": "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+    "extra_model_name_or_path": ["/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"],
+    "bidirectional": true,
+    "max_seq_length": 512,
+    "torch_dtype": "float16",
+    "attn_implementation": "sdpa",
+    "pooling_mode": "mean",
+    "dataset_name": "DermVariants",
+    "dataset_file_path": "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
+    "split": "test",
+    "output_dir": "output/Llama32_1b_instruct_CC_Finetuned/DermVariantsTs",
+    "batch_size": 16,
+    "top_k": 10,
+    "seed": 42
+}

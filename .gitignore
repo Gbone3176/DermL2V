@@ -1,33 +1,120 @@
+# ------------------------------
+# Python build / packaging
+# ------------------------------
 build/
 dist/
-*.egg-info
-**/__pycache__
+*.egg-info/
+*.egg
+*.whl
+
+# Byte-compiled / cache
+__pycache__/
+**/__pycache__/
 *.py[cod]
-*.so
-*.swp
-*.swo
-.DS_Store
-.ipynb_checkpoints/
+*.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pyre/
+.tox/
+.nox/
 .coverage
 .coverage.*
 htmlcov/
 site/
 
-wandb/**
-output/**
-cache/**
-results/**
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ------------------------------
+# Datasets / local corpora
+# ------------------------------
+DermVariantsData/
+research/
+
+# ------------------------------
+# Experiment artifacts
+# ------------------------------
 output/
-*.log
+output/**
+results/
+results/**
+cache/
+cache/**
+wandb/
+wandb/**
+swanlog/
+# Ignore any file/dir whose name contains result/output
+*result*
+*output*
+
+# TensorBoard / profiling
+runs/
 logs/
+*.log
+profile*.json
 tmp/
 test_results/
 Benchmark/BenchmarksOutputs/
 
+# Model checkpoints / weights
+checkpoints/
+checkpoint-*/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# ------------------------------
+# Notebooks / temporary files
+# ------------------------------
+.ipynb_checkpoints/
+*.tmp
+*.temp
+*.bak
+*~
+
+# Local scratch / accidental files
+=*
+tmp.ipynb
+
+# ------------------------------
+# IDE / editor
+# ------------------------------
+.vscode/
+.idea/
+.trae/
+.claude/
+
+# ------------------------------
+# OS files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Existing project-specific ignores
+# ------------------------------
 cluster_scripts/**
 
-.vscode/
-.claude/
+# Ignore only repo-root README on GitHub
+/README.md
+
+*/Archive/**
+
+# Local model / binary artifacts
+latentpooling_init.pt
+
+# Visualization
+visualization/
+
+# Other local outputs
+BLURB-src/outputs/
+Archive/
+*.so
+*.swp
+*.swo
