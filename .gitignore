@@ -81,6 +81,7 @@ checkpoint-*/
 # Local scratch / accidental files
 =*
 tmp.ipynb
+local_info/
 
 # ------------------------------
 # IDE / editor
