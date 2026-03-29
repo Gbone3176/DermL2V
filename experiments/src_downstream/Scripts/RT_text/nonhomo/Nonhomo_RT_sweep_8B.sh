@@ -1,10 +1,10 @@
 INSTRUCTION="${INSTRUCTION:-Given a dermatologic question, return the answer that most closely corresponds to the information being asked for.}"
 # INSTRUCTION="Given a question related to dermatology, retrieve the most relevant answer."
-USE_INST="${USE_INST:-1}"
+USE_INST="${USE_INST:-0}"
 
 DOC_ADD_INST="${DOC_ADD_INST:-0}"
 
-DEVICE_NUM="${DEVICE_NUM:-1}"
+DEVICE_NUM="${DEVICE_NUM:-2}"
 PYTHON_BIN="${PYTHON_BIN:-/opt/conda/envs/l2v/bin/python}"
 RT_MODULE="${RT_MODULE:-experiments.src_downstream.rt_text.nonhomo.nonhomo_RT_l2v}"
 DATASET_FILE="${DATASET_FILE:-/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl}"

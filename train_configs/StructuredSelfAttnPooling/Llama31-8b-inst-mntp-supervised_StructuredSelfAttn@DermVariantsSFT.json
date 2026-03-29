@@ -39,7 +39,7 @@
         "interpolation_mode": "slerp",
         "normalize_mixed": true,
         "slerp_eps": 1e-6,
-        "shared_mix_topk": 16,
+        "shared_mix_topk": 32,
         "aux_loss_weight": 0.001
     },
     "seed": 42,

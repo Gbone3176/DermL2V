@@ -61,6 +61,23 @@ CUDA_VISIBLE_DEVICES=6 /opt/conda/envs/qwen3/bin/python -m experiments.src_downs
     --dermvariants_dir "$DERMVARIANTS_DIR" \
     --output "$OUTPUT_DIR"
 
+### DermL2V
+
+# RT-DermL2V (TopKSharedSlerpMixCSE)
+CUDA_VISIBLE_DEVICES=7 /opt/conda/envs/l2v/bin/python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
+    --model_name "TopKSharedSlerpMixCSE_cp-50" \
+    --pooling_mode "mean" \
+    --max_length 512 \
+    --batch_size 8 \
+    --enable_bidirectional True \
+    --vis_dataset "$VIS_DATASET" \
+    --dermvariants_dir "$DERMVARIANTS_DIR" \
+    --base_model_name_or_path "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct" \
+    --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
+    --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_TopKSharedSlerpMixCSE_DermData2_inst-query/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-2048_l-512_bidirectional-True_e-5_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50" \
+    --output "$OUTPUT_DIR"
+
+
 # RT-DermL2V (structured self-attention version only)
 CUDA_VISIBLE_DEVICES=7 /opt/conda/envs/l2v/bin/python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
     --model_name "StructuredSelfAttn_QAx10_SlerpMixCSE_query-inst_cp-50" \
@@ -74,3 +91,6 @@ CUDA_VISIBLE_DEVICES=7 /opt/conda/envs/l2v/bin/python -m experiments.src_downstr
     --peft_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
     --extra_model_name_or_path "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermVariants/StructuredSelfAttn_QAx10_SlerpMixCSE_query-inst/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50" \
     --output "$OUTPUT_DIR"
+
+
+
