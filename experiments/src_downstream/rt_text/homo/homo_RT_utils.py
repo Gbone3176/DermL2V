@@ -5,8 +5,8 @@ from typing import Dict, List, Optional, Tuple
 import torch
 
 
-DEFAULT_VIS_DATASET = "/storage/dataset/dermatoscop/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl"
-DEFAULT_DERMVARIANTS_DIR = "/storage/dataset/dermatoscop/Derm1M/DermVariantsData"
+DEFAULT_VIS_DATASET = "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl"
+DEFAULT_DERMVARIANTS_DIR = "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermVariantsData"
 DEFAULT_RETRIEVAL_SUBSETS = ["SemVariants", "DermQA", "SI1", "SI2"]
 
 DATASET_INSTRUCTIONS = {

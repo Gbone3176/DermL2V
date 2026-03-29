@@ -1,22 +1,22 @@
-# TopK-Shared SlerpMixCSE (HardNegativeNLLLossV5)
+# TopK 共享式 SlerpMixCSE（HardNegativeNLLLossV5）
 
-## Context
-- Config: `train_configs/topk_shared_slerp_mixcse/Llama31-8b-inst-mntp-supervised_TopKSharedSlerpMixCSE@DermVariantsSFT.json`
-- Runner: `experiments/run_supervised_with_eval.py`
-- Command: `train_configs/topk_shared_slerp_mixcse/commands_topk_shared_slerpmixcse.sh`
+## 背景
+- 配置：`train_configs/topk_shared_slerp_mixcse/Llama31-8b-inst-mntp-supervised_TopKSharedSlerpMixCSE@DermVariantsSFT.json`
+- 运行入口：`experiments/run_supervised_with_eval.py`
+- 命令：`train_configs/topk_shared_slerp_mixcse/commands_topk_shared_slerpmixcse.sh`
 
-## Method Intent
-- Build mixed negatives as in V4, then share across batch and select per-query top-k (`shared_mix_topk`).
-- Intended to enrich hard distractors without using all mixed negatives.
+## 方法意图
+- 先按 V4 方式构造 mixed negatives，再在 batch 内共享，并为每个 query 选取 top-k（`shared_mix_topk`）。
+- 目标是在不使用全部 mixed negatives 的前提下，丰富 hard distractor。
 
-## Plausible Failure Reasons
-- Shared top-k can introduce cross-sample contamination: hard negatives relevant to one query may be semantically mismatched noise for another.
-- Top-k from noisy mixed pool may increase false-hard pressure.
-- Additional retrieval over mixed pool adds complexity without guaranteeing cleaner supervision.
+## 可能失败的原因
+- 共享 top-k 可能引入跨样本污染：对某个 query 有意义的 hard negative，对另一个 query 可能只是语义不匹配的噪声。
+- 从带噪 mixed pool 中选出的 top-k 可能加大 false-hard 压力。
+- 在 mixed pool 上再做一次检索会增加复杂度，但并不能保证监督更干净。
 
-## Decision
-- Use only with strict subset-level diagnostics and ablation against V4.
+## 结论
+- 只有在有严格子集级诊断并且对 V4 做过消融对照之后，才适合继续使用。
 
-## Next Checks
-- [ ] Sweep small `shared_mix_topk` values with short-run budget.
-- [ ] Measure whether top-k shared negatives increase near-miss false negatives.
+## 下一步检查
+- [ ] 在短程预算下扫一组较小的 `shared_mix_topk`。
+- [ ] 衡量 top-k 共享负样本是否增加了 near-miss false negative。

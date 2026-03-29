@@ -1,88 +1,88 @@
-# Step Dynamics Analysis
+# Step 动态分析
 
-## Context
-- Run family: `withEval_QAx10_SlerpMixCSE_DermData2`
-- Related config:
+## 背景
+- 运行系列：`withEval_QAx10_SlerpMixCSE_DermData2`
+- 相关配置：
   - `train_configs/supervised/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT.json`
-- Related trainer state:
+- 相关 trainer state：
   - `output/Llama31_8b_mntp-supervised/DermVariants/withEval_QAx10_SlerpMixCSE_DermData2/.../checkpoint-90/trainer_state.json`
-- Analysis script:
+- 分析脚本：
   - `experiments/retrospectives/data/analyze_step_dynamics.py`
 
-## Important Correction
-- The earlier epoch-boundary explanation applies to the debug config with:
+## 重要修正
+- 之前关于 epoch 边界的解释适用于 debug 配置，当时参数是：
   - `per_device_train_batch_size = 64`
   - `gradient_accumulation_steps = 8`
-- This run is different:
+- 当前这次运行不一样：
   - `per_device_train_batch_size = 16`
   - `gradient_accumulation_steps = 4`
-- Therefore:
-  - effective samples per optimizer step = `16 * 4 * 4 = 256`
-  - effective train size after batching alignment = `136960`
-  - steps per epoch = `136960 / 256 = 535`
-- So `step 55-85` is not near an epoch boundary for this run.
+- 因此：
+  - 每个 optimizer step 的有效样本数 = `16 * 4 * 4 = 256`
+  - 对齐 batch 后的有效训练集大小 = `136960`
+  - 每个 epoch 的 step 数 = `136960 / 256 = 535`
+- 所以，这次运行中的 `step 55-85` 并不靠近 epoch 边界。
 
-## What Was Analyzed
-- epoch boundary markers
-- step-level task composition
-- step-level mean `pos_score - neg_score`
-- logged `grad_norm`
+## 分析了什么
+- epoch 边界标记
+- step 级任务组成
+- step 级平均 `pos_score - neg_score`
+- 记录下来的 `grad_norm`
 
-## Result
+## 结果
 
-### 1. The local dip around step 50-90 is not caused by epoch rollover
-- In this run, epoch boundary is at step `535`, not `67`.
-- So the local behavior around step `55-85` must come from something else.
+### 1. step 50 到 90 附近的局部下滑不是由 epoch rollover 引起的
+- 在这次运行里，epoch 边界在 `step 535`，不是 `67`。
+- 因此，`step 55-85` 附近的局部行为一定另有原因。
 
-### 2. Task composition is fairly stable in the dip window
-- Across steps `45-95`, the subset ratios stay in roughly similar ranges:
-  - `SemVariants`: about `0.08 - 0.18`
-  - `VisVariants`: about `0.13 - 0.27`
-  - `DermQA`: about `0.04 - 0.11`
-  - `SI1`: about `0.23 - 0.37`
-  - `SI2`: about `0.26 - 0.37`
-- No abrupt subset swap or dominance flip is visible.
+### 2. 下滑窗口里的任务组成比较稳定
+- 在 `45-95` 这些 step 之间，各子集占比基本维持在相近范围：
+  - `SemVariants`：约 `0.08 - 0.18`
+  - `VisVariants`：约 `0.13 - 0.27`
+  - `DermQA`：约 `0.04 - 0.11`
+  - `SI1`：约 `0.23 - 0.37`
+  - `SI2`：约 `0.26 - 0.37`
+- 没有看到明显的子集切换或主导权翻转。
 
-### 3. Mean margin is also relatively stable
-- In the same window, step-level mean margin is mostly around:
+### 3. 平均 margin 也相对稳定
+- 在同一窗口内，step 级平均 margin 大多在：
   - `0.12 - 0.15`
-- There is fluctuation, but no strong cliff exactly matching the metric dip.
+- 虽然有波动，但没有与指标下滑精确对应的明显断崖。
 
-### 4. `grad_norm` bottoms out early, then slowly rises
-- Logged values in the window:
-  - step `45`: about `0.918`
-  - step `55`: about `0.802`
-  - step `65`: about `0.800`
-  - step `75`: about `0.840`
-  - step `85`: about `0.891`
-- This looks like:
-  - rapid early stabilization
-  - then a low-gradient plateau
-  - then mild re-expansion of update magnitude
+### 4. `grad_norm` 先较早触底，然后缓慢回升
+- 窗口内记录值：
+  - step `45`：约 `0.918`
+  - step `55`：约 `0.802`
+  - step `65`：约 `0.800`
+  - step `75`：约 `0.840`
+  - step `85`：约 `0.891`
+- 这更像是：
+  - 早期快速稳定
+  - 然后进入低梯度平台
+  - 接着更新幅度轻微再扩张
 
-## Current Interpretation
-- The dip is unlikely to be caused by:
-  - epoch boundary
-  - a sudden shift in subset composition
-  - a sudden drop in average hard-negative margin
-- It is more likely related to optimization behavior, for example:
-  - early easy-fit region followed by harder local adjustments
-  - representation geometry changing before downstream retrieval improves again
-  - local mismatch between training loss reduction and retrieval validation quality
+## 当前解释
+- 这次下滑不太可能由以下因素导致：
+  - epoch 边界
+  - 子集组成的突然变化
+  - 平均 hard-negative margin 的突然下降
+- 它更可能与优化行为有关，例如：
+  - 先经过一个容易拟合的阶段，随后进入更难的局部调整
+  - 表示几何先发生变化，而下游检索指标稍后才恢复
+  - 训练 loss 下降与检索验证质量之间存在局部不匹配
 
-## Practical Takeaway
-- For this run, "data composition shock" is not the main explanation for the `50-90` dip.
-- The more likely explanation is:
-  - optimization-phase dynamics under mixed-task training
-  - combined with noisy or near-boundary hard negatives
+## 实际启示
+- 对这次运行来说，“数据组成冲击”不是解释 `50-90` 下滑的主因。
+- 更可能的解释是：
+  - 混合任务训练下的优化阶段动态
+  - 再叠加 noisy 或 near-boundary 的 hard negative
 
-## Generated Artifacts
+## 生成产物
 - `experiments/retrospectives/data/step_dynamics_outputs/step_dynamics_full.csv`
 - `experiments/retrospectives/data/step_dynamics_outputs/focus_steps_45_95.csv`
 - `experiments/retrospectives/data/step_dynamics_outputs/step_dynamics_overview.png`
 
-## Next Actions
-- [ ] Compare step-level validation metrics with the same step-level train dynamics in one plot
-- [ ] Check whether the dip is driven by one downstream subset rather than the whole validation set
-- [ ] Add step-level low-margin ratio, not just mean margin
-- [ ] Compare this run against the debug config to separate batch-size effects from dataset-order effects
+## 下一步动作
+- [ ] 把 step 级验证指标和同一时间轴上的训练动态画到一张图里
+- [ ] 检查是否是某一个下游子集驱动了这次下滑，而不是整个验证集一起下滑
+- [ ] 增加 step 级低 margin 比例，而不只看平均 margin
+- [ ] 把这次运行与 debug 配置做对比，区分 batch-size 效应和数据顺序效应

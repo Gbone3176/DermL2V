@@ -1,8 +1,8 @@
-# Loss Versions Retrospective (V0 to V5)
+# Loss 各版本回顾（V0 到 V5）
 
-## Context
-- Registry: `llm2vec/loss/utils.py`
-- Implementations:
+## 背景
+- 注册表：`llm2vec/loss/utils.py`
+- 实现：
   - `HardNegativeNLLLossV0.py`
   - `HardNegativeNLLLossV1.py`
   - `HardNegativeNLLLossV2.py`
@@ -10,23 +10,23 @@
   - `HardNegativeNLLLossV4.py`
   - `HardNegativeNLLLossV5.py`
 
-## Version Summary
-- V0: basic in-batch + explicit negatives CE.
-- V1: MixCSE-style fixed-lambda mixed hard negative.
-- V2: V1 + focal reweighting (`gamma`).
-- V3: dynamic lambda + margin-aware mixed-negative penalty.
-- V4: fixed-lambda Slerp/Lerp mixed negative.
-- V5: V4 + top-k shared mixed negatives across batch.
+## 版本摘要
+- V0：基础 in-batch + 显式负样本交叉熵。
+- V1：MixCSE 风格的固定 lambda 混合 hard negative。
+- V2：V1 + focal reweighting（`gamma`）。
+- V3：动态 lambda + margin-aware mixed-negative penalty。
+- V4：固定 lambda 的 Slerp / Lerp 混合负样本。
+- V5：V4 + batch 内共享的 top-k 混合负样本。
 
-## Why Many Variants Still May Fail
-- Most variants still depend on hardest-negative mining quality; if mined negatives are noisy, all versions inherit instability.
-- More complex losses introduce more hyperparameters, raising tuning cost and variance under fixed compute budget.
-- If subset objectives conflict (already observed in data analysis), loss refinement alone cannot fix label-space inconsistency.
+## 为什么这么多变体仍然可能失败
+- 大多数变体仍然依赖 hardest-negative mining 的质量；如果挖出的负样本本身带噪，所有版本都会继承这种不稳定。
+- 更复杂的 loss 会引入更多超参数，在固定算力预算下增加调参成本和结果方差。
+- 如果不同子集的目标本身冲突（数据分析里已经观察到），仅靠 loss 微调无法修复标签空间不一致。
 
-## Decision
-- Keep the loss family, but stop full-run hyperparameter sweeps without low-cost screening.
+## 结论
+- 保留这条 loss 家族，但在没有低成本筛选之前，停止直接做 full-run 超参扫。
 
-## Next Checks
-- [ ] Build a small-step benchmark (e.g., first 300-500 steps) for loss ranking before full 30h runs.
-- [ ] Log per-subset margin statistics under each loss version.
-- [ ] Freeze one stable baseline for regression testing.
+## 下一步检查
+- [ ] 先搭一个小步数基准（例如前 300 到 500 step）做 loss 排名，再决定是否跑完整 30 小时。
+- [ ] 在每个 loss 版本下记录按子集划分的 margin 统计。
+- [ ] 冻结一个稳定基线，用于后续回归测试。
