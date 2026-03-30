@@ -115,6 +115,7 @@ visualization/
 # Other local outputs
 BLURB-src/outputs/
 Archive/
+local_info/
 *.so
 *.swp
 *.swo
