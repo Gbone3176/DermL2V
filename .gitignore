@@ -81,7 +81,6 @@ checkpoint-*/
 # Local scratch / accidental files
 =*
 tmp.ipynb
-local_info/
 
 # ------------------------------
 # IDE / editor
@@ -119,3 +118,7 @@ Archive/
 *.so
 *.swp
 *.swo
+
+
+local_info/
+local_info/**

@@ -385,6 +385,16 @@ class LLM2Vec(nn.Module):
                 state = {
                     k.replace("structured_self_attn.", ""): v for k, v in state.items()
                 }
+            # Backward compatibility: older checkpoints may not save gamma.
+            if "gamma" not in state and hasattr(self.structured_self_attn, "gamma"):
+                current_state = self.structured_self_attn.state_dict()
+                if "gamma" in current_state:
+                    state["gamma"] = current_state["gamma"].detach().clone()
+                    logger.info(
+                        "structured_self_attn checkpoint at %s does not contain gamma; "
+                        "using the current module default value instead.",
+                        state_path,
+                    )
             missing, unexpected = self.structured_self_attn.load_state_dict(
                 state, strict=False
             )
