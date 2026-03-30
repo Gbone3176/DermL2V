@@ -3,7 +3,7 @@
 CUDA_DEVICE=0
 LLM2VEC_PYTHON="/opt/conda/envs/l2v/bin/python"
 QWEN_PYTHON="/opt/conda/envs/qwen3/bin/python"
-OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/medmcqa_filtered"
+OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/medmcqa_filtered"
 MAX_LENGTH=512
 BATCH_SIZE=64
 

@@ -2,6 +2,9 @@ import logging
 
 from .HardNegativeNLLLoss import HardNegativeNLLLoss as HardNegativeNLLLossLatest
 from .HardNegativeNLLLossV0 import HardNegativeNLLLoss as HardNegativeNLLLossV0
+from .HardNegativeNLLLossV0StructuredSelfAttnAblation import (
+    HardNegativeNLLLoss as HardNegativeNLLLossV0StructuredSelfAttnAblation,
+)
 from .HardNegativeNLLLossV1 import HardNegativeNLLLoss as HardNegativeNLLLossV1
 from .HardNegativeNLLLossV2 import HardNegativeNLLLoss as HardNegativeNLLLossV2
 from .HardNegativeNLLLossV3 import HardNegativeNLLLoss as HardNegativeNLLLossV3
@@ -16,6 +19,7 @@ LOSS_REGISTRY = {
     "HardNegativeNLLLoss": HardNegativeNLLLossLatest,
     "HardNegativeNLLLossLatest": HardNegativeNLLLossLatest,
     "HardNegativeNLLLossV0": HardNegativeNLLLossV0,
+    "HardNegativeNLLLossV0StructuredSelfAttnAblation": HardNegativeNLLLossV0StructuredSelfAttnAblation,
     "HardNegativeNLLLossV1": HardNegativeNLLLossV1,
     "HardNegativeNLLLossV2": HardNegativeNLLLossV2,
     "HardNegativeNLLLossV3": HardNegativeNLLLossV3,

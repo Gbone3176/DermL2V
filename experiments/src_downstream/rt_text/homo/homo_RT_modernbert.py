@@ -2,10 +2,24 @@ import argparse
 import json
 import logging
 import os
+
 import torch
 import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModel
-from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
+
+from experiments.src_downstream.rt_text.homo.homo_RT_utils import (
+    DEFAULT_DERMVARIANTS_DIR,
+    DEFAULT_RETRIEVAL_SUBSETS,
+    DEFAULT_VIS_DATASET,
+    build_retrieval_dataset,
+    build_results,
+    build_vis_mcq_samples,
+    evaluate_retrieval_metrics,
+    load_jsonl,
+    macro_average,
+    resolve_output_file,
+)
+
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -14,41 +28,97 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def load_jsonl(file_path):
-    data = []
-    with open(file_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                data.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return data
 
-def encode_texts(tokenizer, model, texts, device, max_length):
-    enc = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
-    enc = {k: v.to(device) for k, v in enc.items()}
-    with torch.no_grad():
-        out = model(**enc)
-        hs = out.last_hidden_state  # (batch_size, seq_len, hidden_size)
+def encode_texts(tokenizer, model, texts, device, max_length, batch_size):
+    all_embeddings = []
+    for start in range(0, len(texts), batch_size):
+        batch_texts = texts[start : start + batch_size]
+        enc = tokenizer(
+            batch_texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+        )
+        enc = {k: v.to(device) for k, v in enc.items()}
+        with torch.no_grad():
+            out = model(**enc)
+            hs = out.last_hidden_state
+            attention_mask = enc["attention_mask"]
+            mask_expanded = attention_mask.unsqueeze(-1).expand(hs.size()).float()
+            sum_embeddings = torch.sum(hs * mask_expanded, dim=1)
+            sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
+            pooled = sum_embeddings / sum_mask
+        all_embeddings.append(pooled.cpu())
+    return torch.cat(all_embeddings, dim=0)
 
-        # Mean pooling over non-padding tokens (recommended for ModernBERT)
-        attention_mask = enc["attention_mask"]  # (batch_size, seq_len)
-        mask_expanded = attention_mask.unsqueeze(-1).expand(hs.size()).float()
-        sum_embeddings = torch.sum(hs * mask_expanded, dim=1)
-        sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
-        pooled = sum_embeddings / sum_mask
-    return pooled
+
+def evaluate_vis_mcq(tokenizer, model, device, vis_dataset_path, max_length, batch_size, max_samples):
+    dataset = load_jsonl(vis_dataset_path)
+    if max_samples > 0:
+        dataset = dataset[:max_samples]
+    queries, candidate_sets = build_vis_mcq_samples(dataset)
+    if not queries:
+        return {"dataset_path": vis_dataset_path, "count": 0, "accuracy": 0.0}
+
+    q_embs = encode_texts(tokenizer, model, queries, device, max_length, batch_size)
+    flat_candidates = [candidate for candidates in candidate_sets for candidate in candidates]
+    cand_counts = [len(candidates) for candidates in candidate_sets]
+    flat_c_embs = encode_texts(tokenizer, model, flat_candidates, device, max_length, batch_size)
+
+    total = 0
+    correct = 0
+    start_idx = 0
+    for idx, count in enumerate(cand_counts):
+        end_idx = start_idx + count
+        sims = F.cosine_similarity(q_embs[idx].unsqueeze(0), flat_c_embs[start_idx:end_idx], dim=1)
+        pred = int(torch.argmax(sims).item())
+        total += 1
+        if pred == 0:
+            correct += 1
+        start_idx = end_idx
+
+    return {
+        "dataset_path": vis_dataset_path,
+        "count": total,
+        "accuracy": (correct / total) if total > 0 else 0.0,
+    }
+
+
+def evaluate_retrieval_suite(tokenizer, model, device, dataset_dir, subsets, max_length, batch_size, max_samples):
+    metrics_by_subset = {}
+    for subset in subsets:
+        dataset_path = os.path.join(dataset_dir, f"{subset}_test.jsonl")
+        dataset = load_jsonl(dataset_path)
+        if max_samples > 0:
+            dataset = dataset[:max_samples]
+
+        corpus, queries, relevant_docs = build_retrieval_dataset(dataset)
+        if not corpus or not queries:
+            metrics_by_subset[subset] = {"dataset_path": dataset_path, "query_count": 0, "corpus_count": 0}
+            continue
+
+        query_ids = list(queries.keys())
+        corpus_ids = list(corpus.keys())
+        q_embs = encode_texts(tokenizer, model, [queries[qid] for qid in query_ids], device, max_length, batch_size)
+        d_embs = encode_texts(tokenizer, model, [corpus[doc_id]["text"] for doc_id in corpus_ids], device, max_length, batch_size)
+        results = build_results(q_embs, d_embs, query_ids, corpus_ids)
+        metrics = evaluate_retrieval_metrics(relevant_docs, results, len(corpus_ids))
+        metrics.update({"dataset_path": dataset_path, "query_count": len(query_ids), "corpus_count": len(corpus_ids)})
+        metrics_by_subset[subset] = metrics
+    return metrics_by_subset
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Task4: Accuracy evaluation using BERT model")
-    parser.add_argument("--input", type=str, required=True)
+    parser = argparse.ArgumentParser(description="Homogeneous RT benchmark using ModernBERT")
     parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--model_name", type=str, default=None)
+    parser.add_argument("--vis_dataset", type=str, default=DEFAULT_VIS_DATASET)
+    parser.add_argument("--dermvariants_dir", type=str, default=DEFAULT_DERMVARIANTS_DIR)
+    parser.add_argument("--retrieval_subsets", type=str, nargs="*", default=DEFAULT_RETRIEVAL_SUBSETS)
     parser.add_argument("--max_length", type=int, default=512)
-    parser.add_argument("--max_samples", type=int, default=10000)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--max_samples", type=int, default=0)
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
 
@@ -56,68 +126,54 @@ def main():
     try:
         tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
     except Exception as e:
-        logger.warning(f"Failed to load tokenizer directly: {e}")
-        logger.info("Trying to load tokenizer from answerdotai/ModernBERT-base")
+        logger.warning("Failed to load tokenizer from %s: %s", args.model_path, e)
         tokenizer = AutoTokenizer.from_pretrained("answerdotai/ModernBERT-base")
-    model = AutoModel.from_pretrained(args.model_path, trust_remote_code=True, attn_implementation="sdpa").to(device).eval()
+    model = AutoModel.from_pretrained(
+        args.model_path,
+        trust_remote_code=True,
+        attn_implementation="sdpa",
+    ).to(device).eval()
 
-    dataset = load_jsonl(args.input)
+    model_name = args.model_name or os.path.basename(args.model_path.rstrip("/"))
+    output_path = resolve_output_file(args.output, model_name)
+    if output_path and os.path.exists(output_path):
+        print(f"Output already exists, skipping: {output_path}")
+        return
 
-    total = 0
-    correct = 0
+    vis_metrics = evaluate_vis_mcq(tokenizer, model, device, args.vis_dataset, args.max_length, args.batch_size, args.max_samples)
+    retrieval_metrics = evaluate_retrieval_suite(
+        tokenizer,
+        model,
+        device,
+        args.dermvariants_dir,
+        args.retrieval_subsets,
+        args.max_length,
+        args.batch_size,
+        args.max_samples,
+    )
 
-    for i in tqdm(range(len(dataset)), desc="Evaluating"):
-        if args.max_samples and total >= args.max_samples:
-            break
-        item = dataset[i]
-        
-        # New format parsing
-        query = (item.get("original") or "").strip()
-        pos_variant = (item.get("positive_variant") or "").strip()
-        neg_variants = item.get("hard_negative_variants") or []
-        
-        # Ensure neg_variants is a list of strings
-        if not isinstance(neg_variants, list):
-            continue
-            
-        neg_variants = [str(n).strip() for n in neg_variants if str(n).strip()]
-        
-        candidates = [pos_variant] + neg_variants
-        
-        # We expect 1 positive and typically 3 negatives, but code should be robust
-        if not query or not pos_variant or len(candidates) < 2:
-            continue
-            
-        q_emb = encode_texts(tokenizer, model, [query], device, args.max_length)[0]
-        c_embs = encode_texts(tokenizer, model, candidates, device, args.max_length)
-        
-        sims = F.cosine_similarity(q_emb.unsqueeze(0), c_embs, dim=1)
-        pred = int(torch.argmax(sims).item())
-        
-        total += 1
-        # The correct answer is always at index 0 (positive_variant)
-        if pred == 0:
-            correct += 1
-
-    accuracy = (correct / total) if total > 0 else 0.0
     results = {
-        "input": args.input,
+        "model_name": model_name,
         "model_path": args.model_path,
-        "max_length": args.max_length,
-        "max_samples": args.max_samples,
-        "output": args.output,
-        "count": total,
-        "accuracy": accuracy,
+        "vis_mcq": vis_metrics,
+        "retrieval": retrieval_metrics,
+        "retrieval_macro_avg": macro_average(
+            {
+                subset: {
+                    key: value
+                    for key, value in metrics.items()
+                    if isinstance(value, (int, float)) and ("@" in key)
+                }
+                for subset, metrics in retrieval_metrics.items()
+            }
+        ),
     }
-    
-    if args.output:
-        output_path = os.path.join(args.output, f"task4_accuracy_{os.path.basename(args.model_path.replace('/', '-'))}.json")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "w") as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
-            
-    print(f"Accuracy: {accuracy:.4f} (count={total})")
 
+    if output_path:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+
+    print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

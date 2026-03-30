@@ -119,3 +119,7 @@ local_info/
 *.so
 *.swp
 *.swo
+
+
+local_info/
+local_info/**

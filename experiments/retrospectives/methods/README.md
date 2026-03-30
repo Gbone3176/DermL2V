@@ -1,19 +1,20 @@
-# Method Retrospectives
+# 方法回顾文档
 
-Use this folder for experiment notes focused on method or modeling issues, including:
+这个目录用于存放聚焦于方法或建模问题的实验笔记，包括：
 
-- architecture changes
-- pooling strategy
-- loss behavior
-- optimization instability
-- epoch-boundary effects
-- checkpoint selection
-- downstream benchmark behavior
+- 架构改动
+- pooling 策略
+- loss 行为
+- 优化不稳定性
+- epoch 边界效应
+- checkpoint 选择
+- 下游基准表现
 
-Suggested file name pattern:
+建议的文件命名格式：
 
 - `YYYY-MM-DD_topic.md`
-- Example: `2026-03-18_v1_vs_v4_validation_behavior.md`
+- 示例：`2026-03-18_v1_vs_v4_validation_behavior.md`
 
-Current index:
+当前索引：
 - `2026-03-18_methods_inventory.md`
+- `2026-03-27_ditto_transferable_methods.md`

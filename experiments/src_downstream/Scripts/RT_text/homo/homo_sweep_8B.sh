@@ -54,7 +54,7 @@ OUT_ROOT="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/homo/${MODEL_NAME
 mkdir -p "$OUT_ROOT"
 
 CUDA_VISIBLE_DEVICES=${DEVICE_NUM} python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
-    --input "$DATASET_FILE_PATH" \
+    --vis_dataset "$DATASET_FILE_PATH" \
     --model_name "${MODEL_NAME}_cp-0" \
     --pooling_mode "$POOLING_MODE" \
     --max_length 512 \
@@ -67,7 +67,7 @@ CUDA_VISIBLE_DEVICES=${DEVICE_NUM} python -m experiments.src_downstream.rt_text.
 
 for CP in "${CPS[@]}"; do
     CUDA_VISIBLE_DEVICES=${DEVICE_NUM} python -m experiments.src_downstream.rt_text.homo.homo_RT_l2v \
-        --input "$DATASET_FILE_PATH" \
+        --vis_dataset "$DATASET_FILE_PATH" \
         --model_name "${MODEL_NAME}_cp-${CP}" \
         --pooling_mode "$POOLING_MODE" \
         --max_length 512 \

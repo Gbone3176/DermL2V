@@ -2,7 +2,7 @@
 
 CUDA_DEVICE=0
 PYTHON_BIN="/opt/conda/envs/l2v/bin/python"
-OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/full"
+OUTPUT_DIR="/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/full"
 MODEL_NAME="gpt2"
 MODEL_PATH="openai-community/gpt2"
 MAX_LENGTH=512

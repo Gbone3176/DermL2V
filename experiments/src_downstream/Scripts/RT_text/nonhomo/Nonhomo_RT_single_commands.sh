@@ -2,14 +2,14 @@
 CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_bert.py \
     --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "emilyalsentzer/Bio_ClinicalBERT" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo"
 
 
 # RT-ModernBert
 CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_modernbert.py \
     --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "thomas-sounack/BioClinical-ModernBERT-large" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo"
 
 
 
@@ -17,7 +17,7 @@ CUDA_VISIBLE_DEVICES=2 python /storage/BioMedNLP/llm2vec/experiments/src_downstr
 CUDA_VISIBLE_DEVICES=5 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_gpt2.py \
     --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_path "openai-community/gpt2" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo"
 
 
 
@@ -26,7 +26,7 @@ CUDA_VISIBLE_DEVICES=5 python /storage/BioMedNLP/llm2vec/experiments/src_downstr
 CUDA_VISIBLE_DEVICES=4 python /storage/BioMedNLP/llm2vec/experiments/src_downstream/rt_text/nonhomo/nonhomo_RT_qwen.py \
     --input "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl" \
     --model_name_or_path "/cache/modelscope/hub/models/Qwen/Qwen3-Embedding-8B" \
-    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/Qwen3-Embedding"
+    --output "/storage/BioMedNLP/llm2vec/output/downstream/RT_text/nonhomo/Qwen3-Embedding"
 
 # 测试: RT-Derml2v  
 CUDA_VISIBLE_DEVICES=6,7 python -m experiments.src_downstream.rt_text.nonhomo.nonhomo_RT_l2v \
@@ -102,4 +102,3 @@ CUDA_VISIBLE_DEVICES=1 python -m experiments.src_downstream.rt_text.nonhomo.nonh
     --repeat_times 1 \
     --apply_repeat_to both \
     --output "/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/downstream/debug/sentrep/"
-

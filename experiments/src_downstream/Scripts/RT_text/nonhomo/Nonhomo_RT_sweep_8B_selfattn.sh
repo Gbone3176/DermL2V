@@ -2,34 +2,34 @@ set -euo pipefail
 
 INSTRUCTION="${INSTRUCTION:-Given a dermatologic question, return the answer that most closely corresponds to the information being asked for.}"
 # INSTRUCTION="Given a question related to dermatology, retrieve the most relevant answer."
-USE_INST="${USE_INST:-0}"
+USE_INST="${USE_INST:-1}"
 
 DOC_ADD_INST="${DOC_ADD_INST:-0}"
 
-DEVICE_NUM="${DEVICE_NUM:-0}"
-PYTHON_BIN="${PYTHON_BIN:-/home/bowenguo/.conda/envs/l2v/bin/python}"
+DEVICE_NUM="${DEVICE_NUM:-1}"
+PYTHON_BIN="${PYTHON_BIN:-/opt/conda/envs/l2v/bin/python}"
 RT_MODULE="${RT_MODULE:-experiments.src_downstream.rt_text.nonhomo.nonhomo_RT_l2v}"
-DATASET_FILE="${DATASET_FILE:-/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl}"
+DATASET_FILE="${DATASET_FILE:-/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl}"
 
 DEVICE_COUNT=$(echo "$DEVICE_NUM" | awk -F',' '{print NF}')
 if [ -z "${BATCH_SIZE:-}" ]; then
     if [ "$DEVICE_COUNT" -gt 1 ]; then
         echo "Warning: RT_MODULE runs as a single process and will only use one visible GPU; using single-GPU batch defaults." >&2
-        BATCH_SIZE=256
+        BATCH_SIZE=32
     else
-        BATCH_SIZE=256
+        BATCH_SIZE=64
     fi
 fi
 echo "BATCH_SIZE: $BATCH_SIZE"
 echo "RT_MODULE: $RT_MODULE"
 
-DERMA_MODEL_PATH="/mnt/nas1/disk06/bowenguo/codes/DermL2V/output/Llama31_8b_mntp-supervised/DermVariants/StructuredSelfAttn_QAx10_SlerpMixCSE_query-inst_uni-init/DermVariants_train_m-Meta-Llama-31-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-3_s-42_w-10_lr-2e-05_lora_r-16"
+DERMA_MODEL_PATH="/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/StructuredSelfAttn_SlerpMixCSE_k32/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16"
 CPS=()
-for ((i=10; i<=198; i+=10)); do
+for ((i=10; i<=132; i+=10)); do
     CPS+=($i)
 done
-if [ -d "${DERMA_MODEL_PATH}/checkpoint-198" ]; then
-    CPS+=(198)
+if [ -d "${DERMA_MODEL_PATH}/checkpoint-132" ]; then
+    CPS+=(132)
 fi
 
 MODEL_NAME="$(basename "$(dirname "$DERMA_MODEL_PATH")")"
@@ -52,13 +52,13 @@ DOC_ADD_INST_FLAG=$([ "$DOC_ADD_INST" -eq 1 ] && echo "True" || echo "False")
 POOLING_MODE=$(echo "$DERMA_MODEL_PATH" | sed -n 's/.*_p-\(.*\)_b-.*/\1/p')
 echo "POOLING_MODE: $POOLING_MODE"
 
-OUT_ROOT_BASE="${OUT_ROOT_BASE:-output/downstream/RT_text}"
+OUT_ROOT_BASE="${OUT_ROOT_BASE:-output/downstream/DermL2V/RT_text/nonhomo}"
 OUT_ROOT="${OUT_ROOT:-${OUT_ROOT_BASE}/${MODEL_NAME}/${OUT_MODE}/}"
 mkdir -p "$OUT_ROOT"
 
-BASE_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct"
-PEFT_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
-EXTRA_MODEL_NAME_OR_PATH="/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
+BASE_MODEL_NAME_OR_PATH="/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct"
+PEFT_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291"
+EXTRA_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
