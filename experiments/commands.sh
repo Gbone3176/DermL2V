@@ -3,13 +3,13 @@
 ###########
 
 # Supervised
-CUDA_VISIBLE_DEVICES=7 python -m experiments.run_supervised_withEval train_configs/supervised/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT.json
+CUDA_VISIBLE_DEVICES=7 python -m experiments.run_supervised_with_eval train_configs/supervised/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT.json
 
-CUDA_VISIBLE_DEVICES=7 python -m experiments.run_supervised_withEval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
+CUDA_VISIBLE_DEVICES=7 python -m experiments.run_supervised_with_eval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
 
-CUDA_VISIBLE_DEVICES=1,2,3,5 torchrun --standalone --nproc_per_node=4 -m experiments.run_supervised_withEval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
+CUDA_VISIBLE_DEVICES=1,2,3,5 torchrun --standalone --nproc_per_node=4 -m experiments.run_supervised_with_eval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
 
-CUDA_VISIBLE_DEVICES=3,5,6,7 torchrun --standalone --nproc_per_node=4 -m experiments.run_supervised_withEval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
+CUDA_VISIBLE_DEVICES=3,5,6,7 torchrun --standalone --nproc_per_node=4 -m experiments.run_supervised_with_eval train_configs/supervised/MetaLlama32_1p3B_inst-mntp_supervised@DermVariantsSFT.json
 
 
 # Baseline + MixCSE + Fusion
@@ -61,4 +61,3 @@ CUDA_VISIBLE_DEVICES=0 python -m BLURB-src.seqcls.run_seqcls_llm2vec train_confi
 
 # # task5-BERT: 
 # CUDA_VISIBLE_DEVICES=2 python -m experiments.run_DermSimRetrieval_bert train_configs/DermEmbeddingTasks/task5/task5-ClinicalBERT.json
-

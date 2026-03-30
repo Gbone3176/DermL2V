@@ -73,7 +73,7 @@ class DermVariants(Dataset):
         self,
         dataset_name: str = "DermVariants",
         split: str = "train",
-        file_path: str | None = "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/Derm1M/DermVariantsData",
+        file_path: str | None = "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/DermVariantsData",
         effective_batch_size: int = 32,
         shuffle_individual_datasets: bool = True,
         separator: str = "!@#$%^&*()",

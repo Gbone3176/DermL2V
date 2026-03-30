@@ -7,7 +7,7 @@
   - `train_configs/supervised/MetaLlama3.1_8B_inst-mntp_supervised@DermVariantsSFT_Debug.json`
 - Related code:
   - `llm2vec/dataset/DermVariants.py`
-  - `experiments/run_supervised_withEval.py`
+  - `experiments/run_supervised_with_eval.py`
   - `experiments/v1_v4_validation/run_v1_v4_validation.py`
 - Analysis date: `2026-03-18`
 

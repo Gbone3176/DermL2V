@@ -34,10 +34,10 @@ Core requirements: `transformers>=4.43.1,<=4.44.2`, `torch==2.5.1+cu121`. Traini
 **Supervised contrastive with evaluation (primary training script):**
 ```bash
 # Single GPU
-python experiments/run_supervised_withEval.py train_configs/supervised/<Config>.json
+python experiments/run_supervised_with_eval.py train_configs/supervised/<Config>.json
 
 # Multi-GPU with torchrun
-torchrun --nproc_per_node=<N> experiments/run_supervised_withEval.py train_configs/supervised/<Config>.json
+torchrun --nproc_per_node=<N> experiments/run_supervised_with_eval.py train_configs/supervised/<Config>.json
 ```
 
 **Layer fusion training (backbone frozen, trains only fusion router):**
@@ -209,7 +209,7 @@ Training scripts use HuggingFace `Trainer` with `accelerate` for distributed tra
 | Script | Key Feature |
 |--------|-----------|
 | `run_supervised.py` | Base supervised contrastive training |
-| `run_supervised_withEval.py` | + Retrieval evaluation callback at each checkpoint (BEIR metrics: NDCG, MAP, Recall, Precision) |
+| `run_supervised_with_eval.py` | + Retrieval evaluation callback at each checkpoint (BEIR metrics: NDCG, MAP, Recall, Precision) |
 | `run_supervised_fusion_withEval.py` | + Layer fusion pooling mode with backbone freezing (imports `llm2vecV3`) |
 
 Common pipeline:
