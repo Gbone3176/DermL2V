@@ -106,7 +106,8 @@ experiments/retrospectives/
 /README.md
 /AGENTS.md
 
-# Ignore any Archive directory at any depth
+# Ignore Archive directories anywhere in the repo
+Archive/
 **/Archive/
 **/Archive/**
 
