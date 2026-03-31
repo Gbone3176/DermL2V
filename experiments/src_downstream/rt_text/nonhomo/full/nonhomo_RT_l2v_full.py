@@ -29,6 +29,7 @@ DATASET_NAME_MAPPING = {
     "medmcqa_skin_retrieval_short_doc_test": "medmcqa_short",
     "MedMCQA_RT_query_doc": "MedMCQA_RT",
     "MedQuAD_dermatology_qa_retrieval": "MedQuAD",
+    "MedQuAD_dermatology_qa_retrieval_doclt300": "MedQuAD_dermatology_qa_retrieval_doclt300",
 }
 
 # Ensure Accelerate logging is initialized before dataset logs

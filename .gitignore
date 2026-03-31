@@ -104,7 +104,9 @@ cluster_scripts/**
 # Ignore only repo-root README on GitHub
 /README.md
 
-*/Archive/**
+# Ignore any Archive directory at any depth
+**/Archive/
+**/Archive/**
 
 # Local model / binary artifacts
 latentpooling_init.pt
@@ -114,7 +116,6 @@ visualization/
 
 # Other local outputs
 BLURB-src/outputs/
-Archive/
 local_info/
 *.so
 *.swp
