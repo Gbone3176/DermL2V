@@ -8,13 +8,13 @@ from typing import Dict, List, Optional, Tuple
 
 
 import torch
-from beir.retrieval.evaluation import EvaluateRetrieval
 from transformers import (
     HfArgumentParser,
     set_seed,
 )
 
 from llm2vec.llm2vecV1 import LLM2Vec
+from experiments.src_downstream.rt_text.nonhomo.full.nonhomo_RT_full_utils import evaluate_retrieval_metrics
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -311,21 +311,7 @@ def main():
             score = top_vals[i][rank]
             results[qid][doc_id] = score
 
-    retriever = EvaluateRetrieval(model, score_function="cos_sim")
-    eval_k = max(1, min(10, len(corpus_ids)))
-    ndcg, _map, recall, precision = retriever.evaluate(
-        relevant_docs,
-        results,
-        [eval_k],
-        ignore_identical_ids=False,
-    )
-
-    ndcg_key = f"NDCG@{eval_k}"
-    recall_key = f"Recall@{eval_k}"
-    metrics = {
-        "NDCG@10": ndcg[ndcg_key],
-        "Recall@10": recall[recall_key],
-    }
+    metrics = evaluate_retrieval_metrics(relevant_docs, results, len(corpus_ids))
     logger.info(json.dumps(metrics, indent=4))
     with open(output_file, "w") as f:
         json.dump(metrics, f, indent=4)

@@ -23,7 +23,7 @@ fi
 echo "BATCH_SIZE: $BATCH_SIZE"
 echo "RT_MODULE: $RT_MODULE"
 
-DERMA_MODEL_PATH="/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/StructuredSelfAttn_SlerpMixCSE_k32/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16"
+DERMA_MODEL_PATH="/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k64_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16"
 CPS=()
 for ((i=10; i<=132; i+=10)); do
     CPS+=($i)

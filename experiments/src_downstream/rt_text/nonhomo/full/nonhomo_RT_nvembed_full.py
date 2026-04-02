@@ -5,6 +5,7 @@ import os
 
 import torch
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, LlamaTokenizerFast
 
 from experiments.src_downstream.rt_text.nonhomo.full.nonhomo_RT_full_utils import (
     build_corpus_queries,
@@ -23,13 +24,48 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_RETRIEVAL_INSTRUCTION = "Given a question, retrieve passages that answer the question"
+NVEMBED_LOCAL_PATH = "/cache/modelscope/models/nv-community/NV-Embed-v2"
+NVEMBED_MODEL_IDS = {
+    "nvidia/NV-Embed-v2",
+    NVEMBED_LOCAL_PATH,
+}
 
 
 def add_eos(texts, eos_token):
     return [text + eos_token for text in texts]
 
 
+def patch_nvembed_tokenizer_loading():
+    original_from_pretrained = AutoTokenizer.from_pretrained
+
+    def wrapped_from_pretrained(pretrained_model_name_or_path, *args, **kwargs):
+        target = str(pretrained_model_name_or_path)
+        if target in NVEMBED_MODEL_IDS:
+            local_snapshot = target if os.path.isdir(target) else NVEMBED_LOCAL_PATH
+            return LlamaTokenizerFast.from_pretrained(local_snapshot)
+        return original_from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+
+    AutoTokenizer.from_pretrained = wrapped_from_pretrained
+
+
 def encode_batches(model, texts, batch_size, prompt=None, desc=None):
+    backend = model._first_module().auto_model
+    if hasattr(backend, "_do_encode"):
+        return backend._do_encode(
+            texts,
+            batch_size=batch_size,
+            instruction=prompt or "",
+            max_length=model.max_seq_length,
+            num_workers=0,
+            return_numpy=False,
+        )
+    if hasattr(backend, "encode"):
+        return backend.encode(
+            texts,
+            instruction=prompt or "",
+            max_length=model.max_seq_length,
+        )
+
     encode_kwargs = {
         "batch_size": batch_size,
         "convert_to_tensor": True,
@@ -79,6 +115,7 @@ def main():
         "torch_dtype": torch.bfloat16 if torch.cuda.is_available() else torch.float32,
     }
 
+    patch_nvembed_tokenizer_loading()
     model = SentenceTransformer(
         args.model_name_or_path,
         model_kwargs=model_kwargs,

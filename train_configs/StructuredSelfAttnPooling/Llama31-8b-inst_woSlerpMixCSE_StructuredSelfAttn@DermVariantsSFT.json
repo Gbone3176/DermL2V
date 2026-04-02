@@ -36,7 +36,7 @@
     "loss_class": "HardNegativeNLLLossV0StructuredSelfAttnAblation",
     "loss_scale": 50.0,
     "loss_kwargs": {
-        "aux_loss_weight": 0.001
+        "aux_loss_weight": 0.01
     },
     "seed": 42,
     "do_eval": true,

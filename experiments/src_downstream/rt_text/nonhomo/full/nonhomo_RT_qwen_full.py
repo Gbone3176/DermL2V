@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--max_samples", type=int, default=0)
     parser.add_argument("--output", type=str, required=True)
     parser.add_argument("--attn_implementation", type=str, default="sdpa", choices=["eager", "sdpa", "flash_attention_2"])
+    parser.add_argument("--use_fast_tokenizer", type=str, default="True")
     args = parser.parse_args()
 
     model_name = args.model_name or args.model_name_or_path.rstrip("/").split("/")[-1]
@@ -56,7 +57,11 @@ def main():
         "trust_remote_code": True,
         "torch_dtype": torch.float16,
     }
-    tokenizer_kwargs = {"padding_side": "left", "trust_remote_code": True}
+    tokenizer_kwargs = {
+        "padding_side": "left",
+        "trust_remote_code": True,
+        "use_fast": args.use_fast_tokenizer.lower() == "true",
+    }
     try:
         model = SentenceTransformer(
             args.model_name_or_path,

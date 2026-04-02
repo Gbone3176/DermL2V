@@ -160,20 +160,32 @@ def build_results(
     return results
 
 
-def evaluate_at_10(
+def evaluate_retrieval_metrics(
     relevant_docs: Dict[str, Dict[str, int]],
     results: Dict[str, Dict[str, float]],
     corpus_size: int,
 ) -> Dict[str, float]:
     retriever = EvaluateRetrieval(None, score_function="cos_sim")
-    eval_k = max(1, min(10, corpus_size))
+    eval_ks = [k for k in (3, 5, 10) if k <= corpus_size]
+    if not eval_ks:
+        eval_ks = [1]
     ndcg, _, recall, _ = retriever.evaluate(
         relevant_docs,
         results,
-        [eval_k],
+        eval_ks,
         ignore_identical_ids=False,
     )
-    return {
-        "NDCG@10": ndcg[f"NDCG@{eval_k}"],
-        "Recall@10": recall[f"Recall@{eval_k}"],
-    }
+    metrics: Dict[str, float] = {}
+    for k in (3, 5, 10):
+        effective_k = min(k, corpus_size)
+        metrics[f"NDCG@{k}"] = ndcg[f"NDCG@{effective_k}"]
+        metrics[f"Recall@{k}"] = recall[f"Recall@{effective_k}"]
+    return metrics
+
+
+def evaluate_at_10(
+    relevant_docs: Dict[str, Dict[str, int]],
+    results: Dict[str, Dict[str, float]],
+    corpus_size: int,
+) -> Dict[str, float]:
+    return evaluate_retrieval_metrics(relevant_docs, results, corpus_size)
