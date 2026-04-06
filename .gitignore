@@ -100,6 +100,7 @@ Thumbs.db
 # Existing project-specific ignores
 # ------------------------------
 cluster_scripts/**
+experiments/retrospectives/
 
 # Ignore only repo-root README on GitHub
 /README.md
