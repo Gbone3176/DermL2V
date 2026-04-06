@@ -103,6 +103,7 @@ cluster_scripts/**
 
 # Ignore only repo-root README on GitHub
 /README.md
+/AGENTS.md
 
 # Ignore any Archive directory at any depth
 **/Archive/
