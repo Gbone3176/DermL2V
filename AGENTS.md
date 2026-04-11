@@ -30,6 +30,8 @@
 
 - In this repository, when the user says `项目记忆`, treat it as referring to `AGENTS.md`.
 - If the user asks to update, persist, or consult `项目记忆`, read or modify `AGENTS.md` unless the user explicitly specifies a different file.
+- For training code in this repository, default to the currently installed older `transformers` interfaces instead of writing forward-compatibility shims for newer releases.
+- Unless the user explicitly asks for cross-version compatibility, write custom trainer overrides against the local old-version signatures such as `Trainer.training_step(self, model, inputs)` and `Trainer.log(self, logs)`.
 
 ## Sync And Commit Policy
 
@@ -79,9 +81,9 @@
 ## DermL2V Ablation Weights
 
 - The current fixed DermL2V ablation checkpoints are:
-  - `baseline`: `/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/baseline/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-2048_l-512_bidirectional-True_e-3_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
-  - `w/ SA`: `/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SA/woSlerpMixCSE_StructuredSelfAttn_aux001_gamma1/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
-  - `w/ SA, SM`: `/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SA_SM/SlerpMixCSE_k128_StructuredSelfAttn_gamma0p1_aux0p001/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
+  - `baseline`: `output/Llama31_8b_mntp-supervised/DermL2V/baseline/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-2048_l-512_bidirectional-True_e-3_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
+  - `w/ SA`: `output/Llama31_8b_mntp-supervised/DermL2V/SA/woSlerpMixCSE_StructuredSelfAttn_aux001_gamma1/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
+  - `w/ SA, SM`: `output/Llama31_8b_mntp-supervised/DermL2V/SA_SM/SlerpMixCSE_k128_StructuredSelfAttn_gamma0p1_aux0p001/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50`
 - When these ablation models are evaluated on RT-homo, use stable model names:
   - `DermL2V_Baseline_cp50`
   - `DermL2V_Baseline_SA_aux001_gamma1_cp50`
