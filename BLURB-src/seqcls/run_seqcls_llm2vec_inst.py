@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import logging
+import math
 import os
 import sys
 from dataclasses import dataclass, field
@@ -20,6 +21,7 @@ except ImportError:
 
 import torch
 from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
 
 import transformers
 from transformers import (
@@ -43,7 +45,7 @@ from transformers.utils.versions import require_version
 
 from peft import PeftModel, LoraConfig, get_peft_model, TaskType
 
-from llm2vec.llm2vec import LLM2Vec
+from llm2vec import LLM2Vec
 from .trainer_seqcls import SeqClsTrainer
 
 import swanlab
@@ -229,6 +231,7 @@ class CustomArguments:
                 "eos_token",
                 "bos_token",
                 "latent_pooling",
+                "structured_selfattn",
                 "eos",
                 "weight",
             ],
@@ -270,6 +273,14 @@ class CustomArguments:
     apply_chat_template: bool = field(
         default=False,
         metadata={"help": "Whether to wrap text with model-specific chat template (e.g. Llama, Qwen). Only useful for Instruct models."},
+    )
+    offline_linear_probing: bool = field(
+        default=False,
+        metadata={"help": "If True together with linear_probing, precompute frozen LLM2Vec embeddings once and train only the classifier head offline."},
+    )
+    encode_batch_size: int = field(
+        default=16,
+        metadata={"help": "Batch size used when precomputing embeddings for offline linear probing."},
     )
 
 
@@ -506,6 +517,29 @@ class RealTimeLoggingCallback(TrainerCallback):
                 
             with open(self.log_file, "a") as f:
                 f.write(json.dumps(metrics) + "\n")
+
+
+def _compute_offline_metrics(labels: np.ndarray, logits: np.ndarray):
+    from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
+
+    probs = 1 / (1 + np.exp(-logits))
+    preds = (np.array(logits) > 0).astype(int)
+
+    metrics = {
+        "f1_micro": f1_score(labels, preds, average="micro"),
+        "f1_macro": f1_score(labels, preds, average="macro"),
+    }
+    try:
+        metrics["roc_auc_macro"] = roc_auc_score(labels, probs, average="macro")
+        metrics["roc_auc_micro"] = roc_auc_score(labels, probs, average="micro")
+    except ValueError:
+        pass
+    try:
+        metrics["mAP_macro"] = average_precision_score(labels, probs, average="macro")
+        metrics["mAP_micro"] = average_precision_score(labels, probs, average="micro")
+    except ValueError:
+        pass
+    return metrics
 
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, CustomArguments))
@@ -762,6 +796,181 @@ def main():
             f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}.",
         )
     max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+
+    if custom_args.offline_linear_probing:
+        if not custom_args.linear_probing:
+            raise ValueError("offline_linear_probing requires linear_probing=true.")
+        if sentence2_key is not None:
+            raise NotImplementedError("offline_linear_probing currently supports only single-sentence classification.")
+
+        def _prepare_text_for_offline_encoding(text: str) -> str:
+            wrapped = wrap_with_instruction(text, custom_args.instruction)
+            if custom_args.apply_chat_template:
+                wrapped = prepare_for_tokenization(config, wrapped, pooling_mode=custom_args.pooling_mode)
+            return wrapped
+
+        def _collect_split(split_name: str):
+            ds = raw_datasets[split_name]
+            texts = [_prepare_text_for_offline_encoding(x) for x in ds[sentence1_key]]
+            labels = np.asarray(ds["label"], dtype=np.float32)
+            return texts, labels
+
+        def _encode_split(texts: List[str]) -> np.ndarray:
+            embeddings = l2v.encode_with_instruction(
+                texts,
+                batch_size=custom_args.encode_batch_size,
+                max_length=max_seq_length,
+                separator=SEPARATOR,
+                show_progress_bar=True,
+                convert_to_numpy=True,
+                device=f"cuda:{training_args.local_rank}" if training_args.local_rank >= 0 else ("cuda" if torch.cuda.is_available() else "cpu"),
+            )
+            return np.asarray(embeddings, dtype=np.float32)
+
+        train_texts, train_labels = _collect_split("train")
+        eval_texts, eval_labels = _collect_split("validation")
+        test_texts, test_labels = _collect_split("test")
+
+        logger.info("Offline linear probing: precomputing frozen LLM2Vec embeddings")
+        train_embeddings = _encode_split(train_texts)
+        eval_embeddings = _encode_split(eval_texts)
+        test_embeddings = _encode_split(test_texts)
+
+        if training_args.local_rank <= 0:
+            os.makedirs(training_args.output_dir, exist_ok=True)
+            np.save(os.path.join(training_args.output_dir, "train_embeddings.npy"), train_embeddings)
+            np.save(os.path.join(training_args.output_dir, "eval_embeddings.npy"), eval_embeddings)
+            np.save(os.path.join(training_args.output_dir, "test_embeddings.npy"), test_embeddings)
+
+        device = torch.device(f"cuda:{training_args.local_rank}" if training_args.local_rank >= 0 else ("cuda" if torch.cuda.is_available() else "cpu"))
+        classifier = nn.Linear(train_embeddings.shape[1], num_labels).to(device)
+        criterion = nn.BCEWithLogitsLoss()
+        optimizer = torch.optim.AdamW(
+            classifier.parameters(),
+            lr=training_args.learning_rate,
+            weight_decay=training_args.weight_decay,
+        )
+
+        steps_per_epoch = math.ceil(len(train_embeddings) / training_args.per_device_train_batch_size)
+        total_steps = max(1, steps_per_epoch * int(training_args.num_train_epochs))
+        warmup_steps = int(total_steps * training_args.warmup_ratio)
+
+        def _lr_lambda(current_step: int) -> float:
+            if warmup_steps > 0 and current_step < warmup_steps:
+                return float(current_step + 1) / float(max(1, warmup_steps))
+            return max(0.0, float(total_steps - current_step) / float(max(1, total_steps - warmup_steps)))
+
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, _lr_lambda)
+        train_loader = DataLoader(
+            TensorDataset(torch.from_numpy(train_embeddings), torch.from_numpy(train_labels)),
+            batch_size=training_args.per_device_train_batch_size,
+            shuffle=True,
+            generator=torch.Generator().manual_seed(training_args.seed),
+        )
+
+        best_metric = float("-inf")
+        best_epoch = 0.0
+        best_state = None
+        log_history = []
+        global_step = 0
+
+        def _predict_logits(features: np.ndarray) -> np.ndarray:
+            classifier.eval()
+            with torch.no_grad():
+                feats = torch.from_numpy(features).to(device)
+                return classifier(feats).cpu().numpy()
+
+        for epoch in range(int(training_args.num_train_epochs)):
+            classifier.train()
+            epoch_losses = []
+            for batch_x, batch_y in train_loader:
+                batch_x = batch_x.to(device)
+                batch_y = batch_y.to(device)
+                optimizer.zero_grad(set_to_none=True)
+                logits = classifier(batch_x)
+                loss = criterion(logits, batch_y)
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+                global_step += 1
+                epoch_losses.append(loss.item())
+
+            epoch_float = float(epoch + 1)
+            train_log = {
+                "epoch": epoch_float,
+                "loss": float(np.mean(epoch_losses)) if epoch_losses else 0.0,
+                "learning_rate": float(scheduler.get_last_lr()[0]),
+                "step": global_step,
+            }
+            log_history.append(train_log)
+
+            eval_metrics = _compute_offline_metrics(eval_labels, _predict_logits(eval_embeddings))
+            eval_log = {"epoch": epoch_float, "step": global_step}
+            for key, value in eval_metrics.items():
+                eval_log[f"eval_{key}"] = float(value)
+            log_history.append(eval_log)
+            if training_args.local_rank <= 0:
+                with open(os.path.join(training_args.output_dir, "eval_history.jsonl"), "a") as f:
+                    f.write(json.dumps(eval_log) + "\n")
+
+            current_metric = eval_metrics.get("f1_macro")
+            if current_metric is not None and current_metric > best_metric:
+                best_metric = float(current_metric)
+                best_epoch = epoch_float
+                best_state = {k: v.detach().cpu().clone() for k, v in classifier.state_dict().items()}
+
+        if best_state is not None:
+            classifier.load_state_dict(best_state)
+
+        if training_args.local_rank <= 0:
+            torch.save(classifier.state_dict(), os.path.join(training_args.output_dir, "classifier_state.pt"))
+
+            final_eval_metrics = _compute_offline_metrics(eval_labels, _predict_logits(eval_embeddings))
+            final_test_metrics = _compute_offline_metrics(test_labels, _predict_logits(test_embeddings))
+
+            train_results = {
+                "epoch": best_epoch,
+                "train_loss": float(log_history[-2]["loss"] if len(log_history) >= 2 else log_history[-1]["loss"]),
+                "train_samples": len(train_labels),
+            }
+            with open(os.path.join(training_args.output_dir, "train_results.json"), "w") as f:
+                json.dump(train_results, f, indent=4)
+
+            eval_results = {"epoch": best_epoch, "eval_samples": len(eval_labels)}
+            for key, value in final_eval_metrics.items():
+                eval_results[f"eval_{key}"] = float(value)
+            with open(os.path.join(training_args.output_dir, "eval_results.json"), "w") as f:
+                json.dump(eval_results, f, indent=4)
+
+            test_results = {"epoch": best_epoch, "test_samples": len(test_labels)}
+            for key, value in final_test_metrics.items():
+                test_results[f"test_{key}"] = float(value)
+            with open(os.path.join(training_args.output_dir, "test_results.json"), "w") as f:
+                json.dump(test_results, f, indent=4)
+
+            trainer_state = {
+                "best_metric": best_metric if best_metric != float("-inf") else None,
+                "best_model_checkpoint": training_args.output_dir,
+                "epoch": best_epoch,
+                "eval_steps": training_args.eval_steps,
+                "global_step": global_step,
+                "is_hyper_param_search": False,
+                "is_local_process_zero": True,
+                "is_world_process_zero": True,
+                "log_history": log_history,
+                "max_steps": total_steps,
+                "num_train_epochs": training_args.num_train_epochs,
+                "save_steps": training_args.save_steps,
+                "train_batch_size": training_args.per_device_train_batch_size,
+                "trial_name": None,
+                "trial_params": None,
+            }
+            with open(os.path.join(training_args.output_dir, "trainer_state.json"), "w") as f:
+                json.dump(trainer_state, f, indent=2)
+
+            tokenizer.save_pretrained(training_args.output_dir)
+
+        return
 
 
 
@@ -1055,7 +1264,6 @@ def main():
             trainer.save_metrics("eval", metrics)
 
         if os.environ.get("USE_CODALAB", 0):
-            import json
             json.dump(metrics, open("dev_stats.json", "w"))
 
     # Predict
@@ -1079,13 +1287,11 @@ def main():
             trainer.save_metrics("test", metrics)
             trainer.log(metrics)
 
-            import json
             output_dir = training_args.output_dir
             output_path = f"{output_dir}/test_outputs_{task}.json" if task is not None else f"{output_dir}/test_outputs.json"
             json.dump({"predictions": results.predictions.tolist(), "label_ids": results.label_ids.tolist()}, open(output_path, "w"))
 
         if os.environ.get("USE_CODALAB", 0):
-            import json
             json.dump(metrics, open("test_stats.json", "w"))
 
     # Push to hub
