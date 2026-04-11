@@ -226,9 +226,9 @@ class ModelArguments:
         default=0.0,
         metadata={"help": "Dropout applied before projecting structured self-attention output back to hidden size."},
     )
-    selfattn_output_layernorm: bool = field(
-        default=True,
-        metadata={"help": "Apply LayerNorm after structured self-attention output projection."},
+    selfattn_output_norm: str = field(
+        default="layernorm",
+        metadata={"help": "Final normalization after structured self-attention pooling.", "choices": ["none", "layernorm", "l2"]},
     )
     selfattn_gamma_init: float = field(
         default=1e-3,
@@ -582,6 +582,9 @@ class LLM2VecSupervisedTrainer(Trainer):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.loss_function = loss_function
+        self._current_loss_components = None
+        self._loss_metric_sums = None
+        self._loss_metric_count = 0
 
     def compute_loss(
         self,
@@ -609,6 +612,17 @@ class LLM2VecSupervisedTrainer(Trainer):
 
         loss = self.loss_function(q_reps, d_reps, d_reps_neg, **loss_kwargs)
 
+        self._current_loss_components = None
+        aux_loss = loss_kwargs.get("aux_loss", None)
+        aux_loss_weight = float(getattr(self.loss_function, "aux_loss_weight", 0.0))
+        if aux_loss is not None and aux_loss_weight > 0.0:
+            retrieval_loss = self.loss_function(q_reps, d_reps, d_reps_neg)
+            self._current_loss_components = {
+                "loss": loss.detach(),
+                "retrieval_loss": retrieval_loss.detach(),
+                "aux_loss": aux_loss.detach(),
+            }
+
         if return_outputs:
             output = torch.cat(
                 [model(row)["sentence_embedding"][:, None] for row in features], dim=1
@@ -616,6 +630,42 @@ class LLM2VecSupervisedTrainer(Trainer):
             return loss, output
 
         return loss
+
+    def training_step(
+        self,
+        model: nn.Module,
+        inputs: Dict[str, Union[torch.Tensor, Any]],
+        num_items_in_batch: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        loss = super().training_step(model, inputs, num_items_in_batch=num_items_in_batch)
+
+        if self._current_loss_components is not None:
+            if self._loss_metric_sums is None:
+                self._loss_metric_sums = {
+                    name: value.new_zeros(())
+                    for name, value in self._current_loss_components.items()
+                }
+            for name, value in self._current_loss_components.items():
+                self._loss_metric_sums[name] = self._loss_metric_sums[name] + value.to(
+                    self._loss_metric_sums[name].device
+                )
+            self._loss_metric_count += 1
+            self._current_loss_components = None
+
+        return loss
+
+    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+        if self._loss_metric_count > 0 and self._loss_metric_sums is not None and "loss" in logs:
+            averaged_metrics = {
+                name: (value / self._loss_metric_count).item()
+                for name, value in self._loss_metric_sums.items()
+            }
+            logs["retrieval_loss"] = averaged_metrics["retrieval_loss"]
+            logs["aux_loss"] = averaged_metrics["aux_loss"]
+            self._loss_metric_sums = None
+            self._loss_metric_count = 0
+
+        super().log(logs, start_time=start_time)
 
     def prediction_step(
         self,
@@ -827,7 +877,7 @@ def main():
         selfattn_attn_hidden_dim=model_args.selfattn_attn_hidden_dim,
         selfattn_num_hops=model_args.selfattn_num_hops,
         selfattn_output_dropout=model_args.selfattn_output_dropout,
-        selfattn_output_layernorm=model_args.selfattn_output_layernorm,
+        selfattn_output_norm=model_args.selfattn_output_norm,
         selfattn_gamma_init=model_args.selfattn_gamma_init,
         selfattn_gamma_learnable=model_args.selfattn_gamma_learnable,
         torch_dtype=torch_dtype,

@@ -16,7 +16,7 @@ BATCH_SIZE=64
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
-SELFATTN_OUTPUT_LAYERNORM=True
+SELFATTN_OUTPUT_NORM=layernorm
 
 DATASET_FILES=(
     "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/Text_RT/eval3-text-benchmark_split_choices.jsonl"
@@ -57,7 +57,7 @@ for DATASET_FILE in "${DATASET_FILES[@]}"; do
         --selfattn_attn_hidden_dim "${SELFATTN_ATTN_HIDDEN_DIM}" \
         --selfattn_num_hops "${SELFATTN_NUM_HOPS}" \
         --selfattn_output_dropout "${SELFATTN_OUTPUT_DROPOUT}" \
-        --selfattn_output_layernorm "${SELFATTN_OUTPUT_LAYERNORM}" \
+        --selfattn_output_norm "${SELFATTN_OUTPUT_NORM}" \
         --base_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/modelscope/hub/models/LLM-Research/Meta-Llama-31-8B-Instruct" \
         --peft_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291" \
         --extra_model_name_or_path "/mnt/nas1/disk06/bowenguo/cache/huggingface_cache/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db" \

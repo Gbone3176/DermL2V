@@ -132,25 +132,25 @@ run_l2v "DermL2V_Baseline_SM_SA_K16_cp50" "structured_selfattn" \
     --selfattn_attn_hidden_dim 512 \
     --selfattn_num_hops 8 \
     --selfattn_output_dropout 0.0 \
-    --selfattn_output_layernorm True \
+    --selfattn_output_norm layernorm \
     --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k16_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-31-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-3_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50"
 run_l2v "DermL2V_Baseline_SM_SA_K32_cp50" "structured_selfattn" \
     --selfattn_attn_hidden_dim 512 \
     --selfattn_num_hops 8 \
     --selfattn_output_dropout 0.0 \
-    --selfattn_output_layernorm True \
+    --selfattn_output_norm layernorm \
     --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k32_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50"
 run_l2v "DermL2V_Baseline_SM_SA_K64_cp50" "structured_selfattn" \
     --selfattn_attn_hidden_dim 512 \
     --selfattn_num_hops 8 \
     --selfattn_output_dropout 0.0 \
-    --selfattn_output_layernorm True \
+    --selfattn_output_norm layernorm \
     --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k64_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50"
 run_l2v "DermL2V_Baseline_SM_SA_K8_cp50" "structured_selfattn" \
     --selfattn_attn_hidden_dim 512 \
     --selfattn_num_hops 8 \
     --selfattn_output_dropout 0.0 \
-    --selfattn_output_layernorm True \
+    --selfattn_output_norm layernorm \
     --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k8_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50"
 run_gpt2
 run_l2v "LLM2Vec_Llama-31-8B" "mean" \

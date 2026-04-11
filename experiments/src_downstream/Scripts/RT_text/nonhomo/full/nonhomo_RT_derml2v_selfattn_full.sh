@@ -14,7 +14,7 @@ BATCH_SIZE=64
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
-SELFATTN_OUTPUT_LAYERNORM=True
+SELFATTN_OUTPUT_NORM=layernorm
 
 DATASET_FILES=(
     "${RT_DATA_ROOT}/eval3-text-benchmark_split_choices.jsonl"
@@ -52,13 +52,18 @@ run_model() {
             --selfattn_attn_hidden_dim "${SELFATTN_ATTN_HIDDEN_DIM}" \
             --selfattn_num_hops "${SELFATTN_NUM_HOPS}" \
             --selfattn_output_dropout "${SELFATTN_OUTPUT_DROPOUT}" \
-            --selfattn_output_layernorm "${SELFATTN_OUTPUT_LAYERNORM}" \
+            --selfattn_output_norm "${SELFATTN_OUTPUT_NORM}" \
             --base_model_name_or_path "${BASE_MODEL_PATH}" \
             --peft_model_name_or_path "${PEFT_MODEL_PATH}" \
             --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "${adapter_path}" \
             --output "${OUTPUT_DIR}"
     done
 }
+
+if [[ -n "${MODEL_NAME_OVERRIDE:-}" && -n "${ADAPTER_PATH_OVERRIDE:-}" ]]; then
+    run_model "${MODEL_NAME_OVERRIDE}" "${ADAPTER_PATH_OVERRIDE}"
+    exit 0
+fi
 
 run_model "DermL2V_Baseline_SM_SA_K8_cp50" \
     "/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k8_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16/checkpoint-50"

@@ -2,7 +2,7 @@ set -euo pipefail
 
 INSTRUCTION="${INSTRUCTION:-Given a dermatologic question, return the answer that most closely corresponds to the information being asked for.}"
 # INSTRUCTION="Given a question related to dermatology, retrieve the most relevant answer."
-USE_INST="${USE_INST:-1}"
+USE_INST="${USE_INST:-0}"
 
 DOC_ADD_INST="${DOC_ADD_INST:-0}"
 
@@ -23,16 +23,28 @@ fi
 echo "BATCH_SIZE: $BATCH_SIZE"
 echo "RT_MODULE: $RT_MODULE"
 
-DERMA_MODEL_PATH="/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SlerpMixCSE_k64_StructuredSelfAttn/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16"
+DERMA_MODEL_PATH="${DERMA_MODEL_PATH:-/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/woSlerpMixCSE_StructuredSelfAttn_aux5/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-structured_selfattn_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16}"
 CPS=()
-for ((i=10; i<=132; i+=10)); do
-    CPS+=($i)
-done
-if [ -d "${DERMA_MODEL_PATH}/checkpoint-132" ]; then
-    CPS+=(132)
+if [ -n "${CPS_LIST:-}" ]; then
+    read -r -a CPS <<<"${CPS_LIST}"
+elif [ "${ALL_CHECKPOINTS:-0}" -eq 1 ]; then
+    while IFS= read -r cp; do
+        CPS+=("$cp")
+    done < <(
+        find "${DERMA_MODEL_PATH}" -maxdepth 1 -type d -name 'checkpoint-*' -printf '%f\n' \
+            | sed 's/^checkpoint-//' \
+            | sort -n
+    )
+else
+    for ((i=10; i<=50; i+=10)); do
+        CPS+=($i)
+    done
+    if [ -d "${DERMA_MODEL_PATH}/checkpoint-132" ]; then
+        CPS+=(132)
+    fi
 fi
 
-MODEL_NAME="$(basename "$(dirname "$DERMA_MODEL_PATH")")"
+MODEL_NAME="${MODEL_NAME_OVERRIDE:-$(basename "$(dirname "$DERMA_MODEL_PATH")")}"
 if [ "$DOC_ADD_INST" -eq 1 ]; then
     MODEL_NAME="${MODEL_NAME}_DOC_ADD_INST"
 fi
@@ -62,7 +74,7 @@ EXTRA_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Ll
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
-SELFATTN_OUTPUT_LAYERNORM=True
+SELFATTN_OUTPUT_NORM=layernorm
 TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-1}"
 OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
@@ -71,26 +83,28 @@ OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-1}"
 
 # ck=0 直接表示使用基础模型进行评估, 固定pooling方式为mean
-CUDA_VISIBLE_DEVICES="${DEVICE_NUM}" \
-TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM}" \
-RAYON_NUM_THREADS="${RAYON_NUM_THREADS}" \
-OMP_NUM_THREADS="${OMP_NUM_THREADS}" \
-MKL_NUM_THREADS="${MKL_NUM_THREADS}" \
-OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS}" \
-NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS}" \
-"${PYTHON_BIN}" -m "$RT_MODULE" \
-    --dataset_file_path "$DATASET_FILE" \
-    --model_name "${MODEL_NAME}_cp_0" \
-    --instruction "$EVAL_INSTRUCTION" \
-    --doc_add_instruction "$DOC_ADD_INST_FLAG" \
-    --pooling_mode "mean" \
-    --max_length 512 \
-    --batch_size "$BATCH_SIZE" \
-    --enable_bidirectional True \
-    --base_model_name_or_path "$BASE_MODEL_NAME_OR_PATH" \
-    --peft_model_name_or_path "$PEFT_MODEL_NAME_OR_PATH" \
-    --extra_model_name_or_path "$EXTRA_MODEL_NAME_OR_PATH" \
-    --output "$OUT_ROOT"
+if [ "${SKIP_BASELINE:-0}" -ne 1 ]; then
+    CUDA_VISIBLE_DEVICES="${DEVICE_NUM}" \
+    TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM}" \
+    RAYON_NUM_THREADS="${RAYON_NUM_THREADS}" \
+    OMP_NUM_THREADS="${OMP_NUM_THREADS}" \
+    MKL_NUM_THREADS="${MKL_NUM_THREADS}" \
+    OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS}" \
+    NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS}" \
+    "${PYTHON_BIN}" -m "$RT_MODULE" \
+        --dataset_file_path "$DATASET_FILE" \
+        --model_name "${MODEL_NAME}_cp_0" \
+        --instruction "$EVAL_INSTRUCTION" \
+        --doc_add_instruction "$DOC_ADD_INST_FLAG" \
+        --pooling_mode "mean" \
+        --max_length 512 \
+        --batch_size "$BATCH_SIZE" \
+        --enable_bidirectional True \
+        --base_model_name_or_path "$BASE_MODEL_NAME_OR_PATH" \
+        --peft_model_name_or_path "$PEFT_MODEL_NAME_OR_PATH" \
+        --extra_model_name_or_path "$EXTRA_MODEL_NAME_OR_PATH" \
+        --output "$OUT_ROOT"
+fi
 
 
 for CP in "${CPS[@]}"; do
@@ -113,7 +127,7 @@ for CP in "${CPS[@]}"; do
         --selfattn_attn_hidden_dim "$SELFATTN_ATTN_HIDDEN_DIM" \
         --selfattn_num_hops "$SELFATTN_NUM_HOPS" \
         --selfattn_output_dropout "$SELFATTN_OUTPUT_DROPOUT" \
-        --selfattn_output_layernorm "$SELFATTN_OUTPUT_LAYERNORM" \
+        --selfattn_output_norm "$SELFATTN_OUTPUT_NORM" \
         --base_model_name_or_path "$BASE_MODEL_NAME_OR_PATH" \
         --peft_model_name_or_path "$PEFT_MODEL_NAME_OR_PATH" \
         --extra_model_name_or_path "$EXTRA_MODEL_NAME_OR_PATH" "${DERMA_MODEL_PATH}/checkpoint-${CP}" \

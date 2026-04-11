@@ -51,7 +51,7 @@ for dataset_file in "${DATASET_FILES[@]}"; do
             --selfattn_attn_hidden_dim 512 \
             --selfattn_num_hops 8 \
             --selfattn_output_dropout 0.0 \
-            --selfattn_output_layernorm True \
+            --selfattn_output_norm layernorm \
             --base_model_name_or_path "${BASE_MODEL_PATH}" \
             --peft_model_name_or_path "${PEFT_MODEL_PATH}" \
             --extra_model_name_or_path "${SUPERVISED_MODEL_PATH}" "${ADAPTER_PATH}" \

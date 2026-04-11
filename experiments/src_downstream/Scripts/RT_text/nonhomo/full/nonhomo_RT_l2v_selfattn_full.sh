@@ -17,7 +17,7 @@ BATCH_SIZE=64
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
-SELFATTN_OUTPUT_LAYERNORM=True
+SELFATTN_OUTPUT_NORM=layernorm
 
 DATASET_FILES=(
     # "${RT_DATA_ROOT}/eval3-text-benchmark_split_choices.jsonl"
@@ -47,7 +47,7 @@ for DATASET_FILE in "${DATASET_FILES[@]}"; do
         --selfattn_attn_hidden_dim ${SELFATTN_ATTN_HIDDEN_DIM} \
         --selfattn_num_hops ${SELFATTN_NUM_HOPS} \
         --selfattn_output_dropout ${SELFATTN_OUTPUT_DROPOUT} \
-        --selfattn_output_layernorm ${SELFATTN_OUTPUT_LAYERNORM} \
+        --selfattn_output_norm ${SELFATTN_OUTPUT_NORM} \
         --base_model_name_or_path "${BASE_MODEL_PATH}" \
         --peft_model_name_or_path "${PEFT_MODEL_PATH}" \
         --extra_model_name_or_path "${EXTRA_MODEL_PATHS[@]}" \

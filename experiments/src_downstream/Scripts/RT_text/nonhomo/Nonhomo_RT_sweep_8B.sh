@@ -55,7 +55,7 @@ EXTRA_MODEL_NAME_OR_PATH="/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Ll
 SELFATTN_ATTN_HIDDEN_DIM=512
 SELFATTN_NUM_HOPS=8
 SELFATTN_OUTPUT_DROPOUT=0.0
-SELFATTN_OUTPUT_LAYERNORM=True
+SELFATTN_OUTPUT_NORM=layernorm
 
 # ck=0 直接表示使用基础模型进行评估, 固定pooling方式为mean
 CUDA_VISIBLE_DEVICES=${DEVICE_NUM} "${PYTHON_BIN}" -m "$RT_MODULE" \
@@ -86,7 +86,7 @@ for CP in "${CPS[@]}"; do
         --selfattn_attn_hidden_dim "$SELFATTN_ATTN_HIDDEN_DIM" \
         --selfattn_num_hops "$SELFATTN_NUM_HOPS" \
         --selfattn_output_dropout "$SELFATTN_OUTPUT_DROPOUT" \
-        --selfattn_output_layernorm "$SELFATTN_OUTPUT_LAYERNORM" \
+        --selfattn_output_norm "$SELFATTN_OUTPUT_NORM" \
         --base_model_name_or_path $BASE_MODEL_NAME_OR_PATH \
         --peft_model_name_or_path $PEFT_MODEL_NAME_OR_PATH \
         --extra_model_name_or_path $EXTRA_MODEL_NAME_OR_PATH "${DERMA_MODEL_PATH}/checkpoint-${CP}"\

@@ -1,5 +1,15 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
+class L2Norm(nn.Module):
+    def __init__(self, eps: float = 1e-9):
+        super().__init__()
+        self.eps = float(eps)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.normalize(x, p=2, dim=-1, eps=self.eps)
 
 
 class StructuredSelfAttentionPooling(nn.Module):
@@ -18,7 +28,7 @@ class StructuredSelfAttentionPooling(nn.Module):
         attn_hidden_dim: int = 512,
         num_hops: int = 8,
         output_dropout: float = 0.0,
-        output_layernorm: bool = True,
+        output_norm: str | None = "layernorm",
         gamma_init: float = 1e-3,
         gamma_learnable: bool = True,
         eps: float = 1e-9,
@@ -32,12 +42,14 @@ class StructuredSelfAttentionPooling(nn.Module):
             raise ValueError("num_hops must be positive.")
         if gamma_init < 0:
             raise ValueError("gamma_init must be non-negative.")
+        if output_norm not in {None, "none", "layernorm", "l2"}:
+            raise ValueError("output_norm must be one of: None, 'none', 'layernorm', 'l2'.")
 
         self.d_model = int(d_model)
         self.attn_hidden_dim = int(attn_hidden_dim)
         self.num_hops = int(num_hops)
         self.output_dropout = float(output_dropout)
-        self.output_layernorm = bool(output_layernorm)
+        self.output_norm_type = None if output_norm in {None, "none"} else str(output_norm)
         self.gamma_init = float(gamma_init)
         self.gamma_learnable = bool(gamma_learnable)
         self.eps = float(eps)
@@ -46,7 +58,12 @@ class StructuredSelfAttentionPooling(nn.Module):
         self.ws2 = nn.Linear(self.attn_hidden_dim, self.num_hops, bias=False)
         self.dropout = nn.Dropout(self.output_dropout)
         self.output_proj = nn.Linear(self.num_hops * self.d_model, self.d_model)
-        self.output_norm = nn.LayerNorm(self.d_model) if self.output_layernorm else None
+        if self.output_norm_type == "layernorm":
+            self.output_norm = nn.LayerNorm(self.d_model)
+        elif self.output_norm_type == "l2":
+            self.output_norm = L2Norm(eps=self.eps)
+        else:
+            self.output_norm = None
         gamma_tensor = torch.tensor(self.gamma_init, dtype=torch.float32)
         if self.gamma_learnable:
             self.gamma = nn.Parameter(gamma_tensor)

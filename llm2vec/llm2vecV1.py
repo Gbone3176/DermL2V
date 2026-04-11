@@ -57,7 +57,7 @@ class LLM2Vec(nn.Module):
         selfattn_attn_hidden_dim: int = 512,
         selfattn_num_hops: int = 8,
         selfattn_output_dropout: float = 0.0,
-        selfattn_output_layernorm: bool = True,
+        selfattn_output_norm: Optional[str] = "layernorm",
         selfattn_gamma_init: float = 1e-3,
         selfattn_gamma_learnable: bool = True,
     ):
@@ -86,7 +86,7 @@ class LLM2Vec(nn.Module):
         self.selfattn_attn_hidden_dim = selfattn_attn_hidden_dim
         self.selfattn_num_hops = selfattn_num_hops
         self.selfattn_output_dropout = selfattn_output_dropout
-        self.selfattn_output_layernorm = selfattn_output_layernorm
+        self.selfattn_output_norm = selfattn_output_norm
         self.selfattn_gamma_init = selfattn_gamma_init
         self.selfattn_gamma_learnable = selfattn_gamma_learnable
 
@@ -117,7 +117,7 @@ class LLM2Vec(nn.Module):
                 attn_hidden_dim=self.selfattn_attn_hidden_dim,
                 num_hops=self.selfattn_num_hops,
                 output_dropout=self.selfattn_output_dropout,
-                output_layernorm=self.selfattn_output_layernorm,
+                output_norm=self.selfattn_output_norm,
                 gamma_init=self.selfattn_gamma_init,
                 gamma_learnable=self.selfattn_gamma_learnable,
             )
@@ -185,13 +185,21 @@ class LLM2Vec(nn.Module):
             "selfattn_attn_hidden_dim",
             "selfattn_num_hops",
             "selfattn_output_dropout",
-            "selfattn_output_layernorm",
+            "selfattn_output_norm",
             "selfattn_gamma_init",
             "selfattn_gamma_learnable",
         ]
         encoder_args = {
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
         }
+        legacy_output_layernorm = kwargs.pop("selfattn_output_layernorm", None)
+        if (
+            legacy_output_layernorm is not None
+            and encoder_args.get("selfattn_output_norm") is None
+        ):
+            encoder_args["selfattn_output_norm"] = (
+                "layernorm" if legacy_output_layernorm else "none"
+            )
 
         tokenizer = AutoTokenizer.from_pretrained(base_model_name_or_path)
         tokenizer.pad_token = tokenizer.eos_token
@@ -274,6 +282,10 @@ class LLM2Vec(nn.Module):
             with open(f"{config_addr}/llm2vec_config.json", "r") as fIn:
                 llm2vec_config = json.load(fIn)
             config.update(llm2vec_config)
+        if "selfattn_output_norm" not in config and "selfattn_output_layernorm" in config:
+            config["selfattn_output_norm"] = (
+                "layernorm" if config.pop("selfattn_output_layernorm") else "none"
+            )
 
         for key, value in encoder_args.items():
             config[key] = value
@@ -995,7 +1007,7 @@ class LLM2Vec(nn.Module):
             "selfattn_attn_hidden_dim": self.selfattn_attn_hidden_dim,
             "selfattn_num_hops": self.selfattn_num_hops,
             "selfattn_output_dropout": self.selfattn_output_dropout,
-            "selfattn_output_layernorm": self.selfattn_output_layernorm,
+            "selfattn_output_norm": self.selfattn_output_norm,
             "selfattn_gamma_init": self.selfattn_gamma_init,
             "selfattn_gamma_learnable": self.selfattn_gamma_learnable,
         }

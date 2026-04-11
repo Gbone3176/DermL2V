@@ -53,7 +53,10 @@ class ModelArguments:
     selfattn_attn_hidden_dim: int = field(default=512)
     selfattn_num_hops: int = field(default=8)
     selfattn_output_dropout: float = field(default=0.0)
-    selfattn_output_layernorm: bool = field(default=True)
+    selfattn_output_norm: str = field(
+        default="layernorm",
+        metadata={"choices": ["none", "layernorm", "l2"]},
+    )
 
 @dataclass
 class DataArguments:
@@ -220,7 +223,7 @@ def main():
         selfattn_attn_hidden_dim=model_args.selfattn_attn_hidden_dim,
         selfattn_num_hops=model_args.selfattn_num_hops,
         selfattn_output_dropout=model_args.selfattn_output_dropout,
-        selfattn_output_layernorm=model_args.selfattn_output_layernorm,
+        selfattn_output_norm=model_args.selfattn_output_norm,
         torch_dtype=torch_dtype,
         attn_implementation=attn_implementation,
     )
