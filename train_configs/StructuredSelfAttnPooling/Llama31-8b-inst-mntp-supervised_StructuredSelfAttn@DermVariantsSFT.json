@@ -1,8 +1,8 @@
 {
-    "model_name_or_path": "/cache/modelscope/hub/models/LLM-Research/Meta-Llama-3.1-8B-Instruct",
-    "peft_model_name_or_path": "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
+    "model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/modelscope/hub/model/LLM-Research/Meta-Llama-3.1-8B-Instruct",
+    "peft_model_name_or_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp/snapshots/34ac7221d7ea81c99f1fc8bc823a167dcb795291",
     "extra_model_name_or_path": [
-        "/cache/hf_home/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
+        "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/cache/huggingface/hub/models--McGill-NLP--LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised/snapshots/9acedfe23912d2db78e6381cbd388ba7acefc6db"
     ],
     "bidirectional": true,
     "pooling_mode": "structured_selfattn",
@@ -11,7 +11,7 @@
     "selfattn_output_dropout": 0.0,
     "selfattn_output_norm": "l2",
     "dataset_name": "DermVariants",
-    "dataset_file_path": "/storage/dataset/dermatoscop/Derm1M/DermVariantsData",
+    "dataset_file_path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/datasets/text-img/dermatoscop/DermVariantsData",
     "dermqa_upsample_ratio": 10,
     "remove_unused_columns": false,
     "learning_rate": 2e-5,
@@ -24,16 +24,16 @@
     "disable_tqdm": false,
     "max_seq_length": 512,
     "overwrite_output_dir": true,
-    "output_dir": "output/Llama31_8b_mntp-supervised/DermL2V/SA_SM/SlerpMixCSE_k128_StructuredSelfAttn_normL2_gamma0p001_aux0p001",
+    "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SA_SM/SlerpMixCSE_k128_StructuredSelfAttn_normL2_gamma0p001_aux0p001",
     "logging_steps": 5,
     "save_steps": 10,
-    "save_only_model": false,
+    "save_only_model": true,
     "stop_after_n_steps": 4000,
     "lora_r": 16,
     "gradient_checkpointing": true,
-    "torch_dtype": "float16",
-    "bf16": false,
-    "attn_implementation": "sdpa",
+    "torch_dtype": "bfloat16",
+    "bf16": true,
+    "attn_implementation": "flash_attention_2",
     "loss_class": "HardNegativeNLLLossV6",
     "loss_scale": 50.0,
     "loss_kwargs": {

@@ -29,7 +29,7 @@ class StructuredSelfAttentionPooling(nn.Module):
         num_hops: int = 8,
         output_dropout: float = 0.0,
         output_norm: str | None = "layernorm",
-        gamma_init: float = 1e-3,
+        gamma_init: float = 1e-2,
         gamma_learnable: bool = True,
         eps: float = 1e-9,
     ):

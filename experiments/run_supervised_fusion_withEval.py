@@ -750,13 +750,6 @@ def main():
     if training_args.gradient_checkpointing:
         training_args.gradient_checkpointing_kwargs = {"use_reentrant": False}
 
-    if hasattr(training_args, "save_only_model") and training_args.save_only_model:
-        if is_main_process:
-            logger.info(
-                "Detected save_only_model=True; overriding to False so checkpoints remain resumable."
-            )
-        training_args.save_only_model = False
-
     if custom_args.experiment_id is not None:
         experiment_id = custom_args.experiment_id
     else:
