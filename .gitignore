@@ -120,6 +120,7 @@ visualization/
 
 # Other local outputs
 BLURB-src/outputs/
+train_configs/
 local_info/
 *.so
 *.swp
