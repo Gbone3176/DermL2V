@@ -69,6 +69,16 @@ def configure_torch_resume_loading() -> None:
     )
 
 
+def is_trainer_resumable_checkpoint(checkpoint_dir: str) -> bool:
+    required_model_files = (
+        "pytorch_model.bin",
+        "pytorch_model.bin.index.json",
+        "model.safetensors",
+        "model.safetensors.index.json",
+    )
+    return any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in required_model_files)
+
+
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
     if model.config._name_or_path == "meta-llama/Meta-Llama-3-8B-Instruct" or isinstance(model.config, LlamaConfig):
         text = (
@@ -635,9 +645,8 @@ class LLM2VecSupervisedTrainer(Trainer):
         self,
         model: nn.Module,
         inputs: Dict[str, Union[torch.Tensor, Any]],
-        num_items_in_batch: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        loss = super().training_step(model, inputs, num_items_in_batch=num_items_in_batch)
+        loss = super().training_step(model, inputs)
 
         if self._current_loss_components is not None:
             if self._loss_metric_sums is None:
@@ -654,7 +663,7 @@ class LLM2VecSupervisedTrainer(Trainer):
 
         return loss
 
-    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+    def log(self, logs: Dict[str, float]) -> None:
         if self._loss_metric_count > 0 and self._loss_metric_sums is not None and "loss" in logs:
             averaged_metrics = {
                 name: (value / self._loss_metric_count).item()
@@ -665,7 +674,7 @@ class LLM2VecSupervisedTrainer(Trainer):
             self._loss_metric_sums = None
             self._loss_metric_count = 0
 
-        super().log(logs, start_time=start_time)
+        super().log(logs)
 
     def prediction_step(
         self,
@@ -810,6 +819,14 @@ def main():
     last_checkpoint = None
     if training_args.do_train and os.path.isdir(training_args.output_dir):
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
+        if last_checkpoint is not None and not is_trainer_resumable_checkpoint(last_checkpoint):
+            if accelerator.is_main_process:
+                logger.warning(
+                    "Found checkpoint at %s, but it does not contain Hugging Face resumable model files. "
+                    "Skipping automatic resume for this run.",
+                    last_checkpoint,
+                )
+            last_checkpoint = None
         if (
             accelerator.is_main_process
             and last_checkpoint is not None
@@ -943,6 +960,14 @@ def main():
         trainer.add_callback(StopTrainingCallback(custom_args.stop_after_n_steps))
 
     checkpoint = training_args.resume_from_checkpoint or last_checkpoint
+    if checkpoint and training_args.resume_from_checkpoint is not None:
+        if not is_trainer_resumable_checkpoint(checkpoint):
+            raise ValueError(
+                "resume_from_checkpoint points to a directory that is not resumable by transformers.Trainer: "
+                f"{checkpoint}. Expected one of "
+                "'pytorch_model.bin', 'pytorch_model.bin.index.json', "
+                "'model.safetensors', or 'model.safetensors.index.json'."
+            )
     if checkpoint:
         configure_torch_resume_loading()
     trainer.train(resume_from_checkpoint=checkpoint)
