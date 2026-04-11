@@ -8,6 +8,7 @@ import torch
 DEFAULT_VIS_DATASET = "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermEmbeddingBenchmark/exp4-VisualMatching/VisualizationVariations_task.jsonl"
 DEFAULT_DERMVARIANTS_DIR = "/mnt/nas1/disk06/bowenguo/datasets/image-text/Derm1M/DermVariantsData"
 DEFAULT_RETRIEVAL_SUBSETS = ["SemVariants", "DermQA", "SI1", "SI2"]
+DEFAULT_RETRIEVAL_MODE = "separate"
 
 DATASET_INSTRUCTIONS = {
     "VisVariants": "Given a diagnosis-style dermatology text, retrieve the visual-description text that best matches it in meaning.",
@@ -44,6 +45,20 @@ def resolve_output_file(output_root: Optional[str], model_name: str) -> Optional
         return None
     os.makedirs(output_root, exist_ok=True)
     return os.path.join(output_root, f"homo_RT_{sanitize_path_component(model_name)}.json")
+
+
+def output_matches_retrieval_mode(output_path: Optional[str], retrieval_mode: str) -> bool:
+    if not output_path or not os.path.exists(output_path):
+        return False
+
+    try:
+        with open(output_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    saved_mode = payload.get("retrieval_mode", "separate")
+    return saved_mode == retrieval_mode
 
 
 def _normalize_text(value) -> Optional[str]:
@@ -110,6 +125,63 @@ def build_retrieval_dataset(dataset: List[dict]) -> Tuple[Dict[str, Dict[str, st
         relevant_docs[qid] = {doc_id: 1}
 
     return corpus, queries, relevant_docs
+
+
+def load_retrieval_subset_datasets(
+    dataset_dir: str,
+    subsets: List[str],
+    max_samples: int,
+) -> Tuple[Dict[str, str], Dict[str, List[dict]]]:
+    dataset_paths: Dict[str, str] = {}
+    datasets_by_subset: Dict[str, List[dict]] = {}
+
+    for subset in subsets:
+        dataset_path = os.path.join(dataset_dir, f"{subset}_test.jsonl")
+        dataset = load_jsonl(dataset_path)
+        if max_samples > 0:
+            dataset = dataset[:max_samples]
+        dataset_paths[subset] = dataset_path
+        datasets_by_subset[subset] = dataset
+
+    return dataset_paths, datasets_by_subset
+
+
+def build_mixed_retrieval_dataset(
+    datasets_by_subset: Dict[str, List[dict]],
+) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]], Dict[str, Dict[str, Dict[str, int]]]]:
+    corpus: Dict[str, Dict[str, str]] = {}
+    queries_by_subset: Dict[str, Dict[str, str]] = {}
+    relevant_docs_by_subset: Dict[str, Dict[str, Dict[str, int]]] = {}
+    doc_ids_by_text: Dict[str, str] = {}
+
+    for subset, dataset in datasets_by_subset.items():
+        subset_queries: Dict[str, str] = {}
+        subset_relevant_docs: Dict[str, Dict[str, int]] = {}
+
+        for idx, item in enumerate(dataset):
+            query = _normalize_text(item.get("original"))
+            positive = _normalize_text(item.get("positive_variant"))
+            if not query or not positive:
+                continue
+
+            raw_qid = str(item.get("id", idx))
+            qid = f"{subset}:{raw_qid}"
+            if qid in subset_queries:
+                qid = f"{qid}_{idx}"
+            subset_queries[qid] = query
+
+            doc_id = doc_ids_by_text.get(positive)
+            if doc_id is None:
+                doc_id = f"d{len(doc_ids_by_text)}"
+                doc_ids_by_text[positive] = doc_id
+                corpus[doc_id] = {"text": positive}
+
+            subset_relevant_docs[qid] = {doc_id: 1}
+
+        queries_by_subset[subset] = subset_queries
+        relevant_docs_by_subset[subset] = subset_relevant_docs
+
+    return corpus, queries_by_subset, relevant_docs_by_subset
 
 
 def cos_sim(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:

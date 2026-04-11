@@ -8,14 +8,18 @@ from sentence_transformers import SentenceTransformer
 
 from experiments.src_downstream.rt_text.homo.homo_RT_utils import (
     DEFAULT_DERMVARIANTS_DIR,
+    DEFAULT_RETRIEVAL_MODE,
     DEFAULT_RETRIEVAL_SUBSETS,
     DEFAULT_VIS_DATASET,
+    build_mixed_retrieval_dataset,
     build_retrieval_dataset,
     build_results,
     build_vis_mcq_samples,
     evaluate_retrieval_metrics,
+    load_retrieval_subset_datasets,
     load_jsonl,
     macro_average,
+    output_matches_retrieval_mode,
     resolve_output_file,
 )
 
@@ -67,13 +71,37 @@ def evaluate_vis_mcq(model, vis_dataset_path, batch_size, max_samples):
     return {"dataset_path": vis_dataset_path, "count": total, "accuracy": (correct / total) if total > 0 else 0.0}
 
 
-def evaluate_retrieval_suite(model, dataset_dir, subsets, batch_size, max_samples):
+def evaluate_retrieval_suite(model, dataset_dir, subsets, batch_size, max_samples, retrieval_mode):
     metrics_by_subset = {}
+    dataset_paths, datasets_by_subset = load_retrieval_subset_datasets(dataset_dir, subsets, max_samples)
+
+    if retrieval_mode == "mixed":
+        corpus, queries_by_subset, relevant_docs_by_subset = build_mixed_retrieval_dataset(datasets_by_subset)
+        corpus_ids = list(corpus.keys())
+        if not corpus_ids:
+            for subset in subsets:
+                metrics_by_subset[subset] = {"dataset_path": dataset_paths[subset], "query_count": 0, "corpus_count": 0}
+            return metrics_by_subset
+
+        d_embs = encode_docs(model, [corpus[doc_id]["text"] for doc_id in corpus_ids], batch_size)
+        for subset in subsets:
+            queries = queries_by_subset[subset]
+            relevant_docs = relevant_docs_by_subset[subset]
+            query_ids = list(queries.keys())
+            if not query_ids:
+                metrics_by_subset[subset] = {"dataset_path": dataset_paths[subset], "query_count": 0, "corpus_count": len(corpus_ids)}
+                continue
+
+            q_embs = encode_queries(model, [queries[qid] for qid in query_ids], batch_size)
+            results = build_results(q_embs, d_embs, query_ids, corpus_ids)
+            metrics = evaluate_retrieval_metrics(relevant_docs, results, len(corpus_ids))
+            metrics.update({"dataset_path": dataset_paths[subset], "query_count": len(query_ids), "corpus_count": len(corpus_ids)})
+            metrics_by_subset[subset] = metrics
+        return metrics_by_subset
+
     for subset in subsets:
-        dataset_path = os.path.join(dataset_dir, f"{subset}_test.jsonl")
-        dataset = load_jsonl(dataset_path)
-        if max_samples > 0:
-            dataset = dataset[:max_samples]
+        dataset_path = dataset_paths[subset]
+        dataset = datasets_by_subset[subset]
 
         corpus, queries, relevant_docs = build_retrieval_dataset(dataset)
         if not corpus or not queries:
@@ -98,6 +126,7 @@ def main():
     parser.add_argument("--vis_dataset", type=str, default=DEFAULT_VIS_DATASET)
     parser.add_argument("--dermvariants_dir", type=str, default=DEFAULT_DERMVARIANTS_DIR)
     parser.add_argument("--retrieval_subsets", type=str, nargs="*", default=DEFAULT_RETRIEVAL_SUBSETS)
+    parser.add_argument("--retrieval_mode", type=str, default=DEFAULT_RETRIEVAL_MODE, choices=["mixed", "separate"])
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--max_length", type=int, default=512)
     parser.add_argument("--max_samples", type=int, default=0)
@@ -132,7 +161,7 @@ def main():
 
     model_name = args.model_name or os.path.basename(args.model_name_or_path.rstrip("/"))
     output_path = resolve_output_file(args.output, model_name)
-    if output_path and os.path.exists(output_path):
+    if output_matches_retrieval_mode(output_path, args.retrieval_mode):
         print(f"Output already exists, skipping: {output_path}")
         return
 
@@ -143,11 +172,13 @@ def main():
         args.retrieval_subsets,
         args.batch_size,
         args.max_samples,
+        args.retrieval_mode,
     )
 
     results = {
         "model_name": model_name,
         "model_path": args.model_name_or_path,
+        "retrieval_mode": args.retrieval_mode,
         "vis_mcq": vis_metrics,
         "retrieval": retrieval_metrics,
         "retrieval_macro_avg": macro_average(
