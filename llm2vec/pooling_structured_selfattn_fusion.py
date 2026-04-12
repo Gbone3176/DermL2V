@@ -12,6 +12,17 @@ class L2Norm(nn.Module):
         return F.normalize(x, p=2, dim=-1, eps=self.eps)
 
 
+class RMSNorm(nn.Module):
+    def __init__(self, dim: int, eps: float = 1e-6):
+        super().__init__()
+        self.eps = float(eps)
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        rms = x.pow(2).mean(dim=-1, keepdim=True).add(self.eps).rsqrt()
+        return x * rms * self.weight
+
+
 class StructuredSelfAttentionFusionPooling(nn.Module):
     """
     Structured self-attention pooling that keeps the mean view and r attention
@@ -42,8 +53,10 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
             raise ValueError("num_hops must be positive.")
         if merge_mode not in {"weighted_sum", "router"}:
             raise ValueError("merge_mode must be one of: 'weighted_sum', 'router'.")
-        if output_norm not in {None, "none", "layernorm", "l2"}:
-            raise ValueError("output_norm must be one of: None, 'none', 'layernorm', 'l2'.")
+        if output_norm not in {None, "none", "layernorm", "l2", "rmsnorm"}:
+            raise ValueError(
+                "output_norm must be one of: None, 'none', 'layernorm', 'l2', 'rmsnorm'."
+            )
         if merge_input_norm not in {None, "none", "layernorm", "l2"}:
             raise ValueError(
                 "merge_input_norm must be one of: None, 'none', 'layernorm', 'l2'."
@@ -99,6 +112,8 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
             self.output_norm = nn.LayerNorm(self.d_model)
         elif self.output_norm_type == "l2":
             self.output_norm = L2Norm(eps=self.eps)
+        elif self.output_norm_type == "rmsnorm":
+            self.output_norm = RMSNorm(self.d_model, eps=self.eps)
         else:
             self.output_norm = None
 

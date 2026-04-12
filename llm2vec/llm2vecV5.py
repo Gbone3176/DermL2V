@@ -72,12 +72,6 @@ class LLM2Vec(nn.Module):
         selfattn_merge_input_norm: Optional[str] = "layernorm",
         selfattn_merge_mean_bias: float = 3.0,
     ):
-        
-# merge_input_norm：先把各 view 放到可比较的空间
-# merge_hidden_dim：router 用多强的 MLP 来学“谁更重要”
-# merge_temperature：最终权重分布是尖还是平
-# merge_mean_bias：初始时先偏向 mean pooling 到什么程度
-
         super().__init__()
         self.model = model
         self.tokenizer = tokenizer
@@ -105,8 +99,12 @@ class LLM2Vec(nn.Module):
         self.selfattn_num_hops = selfattn_num_hops
         self.selfattn_output_dropout = selfattn_output_dropout
         self.selfattn_output_norm = selfattn_output_norm
-        self.selfattn_gamma_init = selfattn_gamma_init
-        self.selfattn_gamma_learnable = selfattn_gamma_learnable
+        self.selfattn_gamma_init = (
+            selfattn_gamma_init if self.pooling_mode == "structured_selfattn" else None
+        )
+        self.selfattn_gamma_learnable = (
+            selfattn_gamma_learnable if self.pooling_mode == "structured_selfattn" else None
+        )
         self.selfattn_merge_mode = selfattn_merge_mode
         self.selfattn_merge_temperature = selfattn_merge_temperature
         self.selfattn_merge_hidden_dim = selfattn_merge_hidden_dim
@@ -1066,14 +1064,15 @@ class LLM2Vec(nn.Module):
             "selfattn_num_hops": self.selfattn_num_hops,
             "selfattn_output_dropout": self.selfattn_output_dropout,
             "selfattn_output_norm": self.selfattn_output_norm,
-            "selfattn_gamma_init": self.selfattn_gamma_init,
-            "selfattn_gamma_learnable": self.selfattn_gamma_learnable,
             "selfattn_merge_mode": self.selfattn_merge_mode,
             "selfattn_merge_temperature": self.selfattn_merge_temperature,
             "selfattn_merge_hidden_dim": self.selfattn_merge_hidden_dim,
             "selfattn_merge_input_norm": self.selfattn_merge_input_norm,
             "selfattn_merge_mean_bias": self.selfattn_merge_mean_bias,
         }
+        if self.pooling_mode == "structured_selfattn":
+            llm2vec_config["selfattn_gamma_init"] = self.selfattn_gamma_init
+            llm2vec_config["selfattn_gamma_learnable"] = self.selfattn_gamma_learnable
 
         if save_config:
             os.makedirs(output_path, exist_ok=True)
