@@ -29,7 +29,7 @@
     "disable_tqdm": false,
     "max_seq_length": 512,
     "overwrite_output_dir": true,
-    "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SA_Fusion/debug/SlerpMixCSE_k16_SAFusionRouter_aux0p01",
+    "output_dir": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec/output/Llama31_8b_mntp-supervised/DermL2V/SA_Fusion/debug/SlerpMixCSE_k16_SAFusionRouter_aux0p1",
     "logging_steps": 1,
     "save_steps": 1,
     "save_only_model": false,

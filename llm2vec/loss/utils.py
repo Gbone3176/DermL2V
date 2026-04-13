@@ -11,6 +11,7 @@ from .HardNegativeNLLLossV3 import HardNegativeNLLLoss as HardNegativeNLLLossV3
 from .HardNegativeNLLLossV4 import HardNegativeNLLLoss as HardNegativeNLLLossV4
 from .HardNegativeNLLLossV5 import HardNegativeNLLLoss as HardNegativeNLLLossV5
 from .HardNegativeNLLLossV6 import HardNegativeNLLLoss as HardNegativeNLLLossV6
+from .HardNegativeNLLLossV7AnglE import HardNegativeNLLLoss as HardNegativeNLLLossV7AnglE
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ LOSS_REGISTRY = {
     "HardNegativeNLLLossV4": HardNegativeNLLLossV4,
     "HardNegativeNLLLossV5": HardNegativeNLLLossV5,
     "HardNegativeNLLLossV6": HardNegativeNLLLossV6,
+    "HardNegativeNLLLossV7AnglE": HardNegativeNLLLossV7AnglE,
 }
 
 AVAILABLE_LOSS_CLASSES = tuple(LOSS_REGISTRY.keys())
