@@ -37,6 +37,7 @@
 
 - When the goal is to sync code to a training machine, only commit and push training-related code, configs, and launch scripts.
 - Do not include post-processing, plotting, retrospective analysis, result rendering, or monitoring/watch helper scripts in such sync-oriented commits unless the user explicitly asks for them.
+- Do not track or push downstream-task scripts under `experiments/src_downstream/` by default. This includes RT and CLS task scripts unless the user explicitly asks to version them again.
 - If the worktree also contains unrelated evaluation or post-processing changes, leave them uncommitted by default and mention that they were excluded.
 
 ## Ablation Summary Conventions
@@ -50,6 +51,8 @@
 ## RT Evaluation Workflow
 
 - For nonhomogeneous RT retrieval experiments, the default execution flow is two-stage rather than directly running the full three-dataset evaluation.
+- Exception for the current V5 downstream evaluation path: when the user is explicitly validating the latest pulled architecture with the new V5-compatible downstream runners, skip the old `woinst` / `inst` stage-1 sweep by default and directly launch the three-dataset `nonhomo-full` evaluation.
+- For this V5 path, prefer the dedicated V5 runners under `experiments/src_downstream/rt_text/nonhomo/` and `experiments/src_downstream/rt_text/nonhomo/full/`, and keep outputs separated with a `_v5` model or sweep suffix.
 - Stage 1 is a sweep on `/storage/dataset/dermatoscop/DermEmbeddingBenchmark/RT_text/eval3-text-benchmark_split_choices.jsonl` to evaluate all available checkpoints for a run.
 - Use the nonhomo sweep scripts under `experiments/src_downstream/Scripts/RT_text/nonhomo/`, for example:
   - `experiments/src_downstream/Scripts/RT_text/nonhomo/Nonhomo_RT_sweep_8B.sh`

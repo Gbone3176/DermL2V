@@ -101,6 +101,8 @@ Thumbs.db
 # ------------------------------
 cluster_scripts/**
 experiments/retrospectives/
+experiments/src_downstream/
+experiments/src_downstream/**
 train_configs/
 
 # Ignore only repo-root README on GitHub
