@@ -60,6 +60,11 @@ class LLM2Vec(nn.Module):
         selfattn_output_norm: Optional[str] = "layernorm",
         selfattn_gamma_init: float = 1e-3,
         selfattn_gamma_learnable: bool = True,
+        selfattn_merge_mode: str = "residual",
+        selfattn_merge_temperature: float = 1.0,
+        selfattn_merge_hidden_dim: Optional[int] = None,
+        selfattn_merge_input_norm: Optional[str] = None,
+        selfattn_merge_mean_bias: float = 0.0,
     ):
         super().__init__()
         self.model = model
@@ -73,6 +78,7 @@ class LLM2Vec(nn.Module):
             "bos_token",
             "latent_pooling",
             "structured_selfattn",
+            "structured_selfattn_fusion",
         }
         if pooling_mode not in valid_pooling_modes:
             raise ValueError(
@@ -89,6 +95,11 @@ class LLM2Vec(nn.Module):
         self.selfattn_output_norm = selfattn_output_norm
         self.selfattn_gamma_init = selfattn_gamma_init
         self.selfattn_gamma_learnable = selfattn_gamma_learnable
+        self.selfattn_merge_mode = selfattn_merge_mode
+        self.selfattn_merge_temperature = selfattn_merge_temperature
+        self.selfattn_merge_hidden_dim = selfattn_merge_hidden_dim
+        self.selfattn_merge_input_norm = selfattn_merge_input_norm
+        self.selfattn_merge_mean_bias = selfattn_merge_mean_bias
 
         # Initialize latent attention pooling when requested
         self.latent_attn: Optional[LatentAttentionPooling] = None
@@ -106,11 +117,11 @@ class LLM2Vec(nn.Module):
                 num_latents=512,
                 num_heads=8,
             )
-        elif self.pooling_mode == "structured_selfattn":
+        elif self.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}:
             hidden_size = getattr(self.model.config, "hidden_size", None)
             if hidden_size is None:
                 raise ValueError(
-                    "Model config must define hidden_size to use structured_selfattn."
+                    "Model config must define hidden_size to use structured self-attention pooling."
                 )
             self.structured_self_attn = StructuredSelfAttentionPooling(
                 d_model=hidden_size,
@@ -120,6 +131,11 @@ class LLM2Vec(nn.Module):
                 output_norm=self.selfattn_output_norm,
                 gamma_init=self.selfattn_gamma_init,
                 gamma_learnable=self.selfattn_gamma_learnable,
+                merge_mode=self.selfattn_merge_mode,
+                merge_temperature=self.selfattn_merge_temperature,
+                merge_hidden_dim=self.selfattn_merge_hidden_dim,
+                merge_input_norm=self.selfattn_merge_input_norm,
+                merge_mean_bias=self.selfattn_merge_mean_bias,
             )
         else:
             self.latent_attn = None
@@ -188,6 +204,11 @@ class LLM2Vec(nn.Module):
             "selfattn_output_norm",
             "selfattn_gamma_init",
             "selfattn_gamma_learnable",
+            "selfattn_merge_mode",
+            "selfattn_merge_temperature",
+            "selfattn_merge_hidden_dim",
+            "selfattn_merge_input_norm",
+            "selfattn_merge_mean_bias",
         ]
         encoder_args = {
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
@@ -302,7 +323,7 @@ class LLM2Vec(nn.Module):
             )
         if (
             getattr(llm2vec_model, "structured_self_attn", None) is not None
-            and llm2vec_model.pooling_mode == "structured_selfattn"
+            and llm2vec_model.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}
         ):
             llm2vec_model._load_structured_self_attention_weights(
                 peft_model_name_or_path
@@ -564,10 +585,10 @@ class LLM2Vec(nn.Module):
                 if attn_mask is not None:
                     attn_mask = attn_mask.to(last_hidden_states.device)
             return self.latent_attn(last_hidden_states, attention_mask=attn_mask)
-        elif self.pooling_mode == "structured_selfattn":
+        elif self.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}:
             if self.structured_self_attn is None:
                 raise RuntimeError(
-                    "structured_self_attn module is not initialized but structured_selfattn was selected."
+                    "structured_self_attn module is not initialized but structured self-attention pooling was selected."
                 )
             attn_mask = None
             if "embed_mask" in features and features["embed_mask"] is not None:

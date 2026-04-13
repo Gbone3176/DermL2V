@@ -232,6 +232,7 @@ class CustomArguments:
                 "bos_token",
                 "latent_pooling",
                 "structured_selfattn",
+                "structured_selfattn_fusion",
                 "eos",
                 "weight",
             ],

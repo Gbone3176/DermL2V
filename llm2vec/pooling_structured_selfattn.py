@@ -31,6 +31,11 @@ class StructuredSelfAttentionPooling(nn.Module):
         output_norm: str | None = "layernorm",
         gamma_init: float = 1e-2,
         gamma_learnable: bool = True,
+        merge_mode: str = "residual",
+        merge_temperature: float = 1.0,
+        merge_hidden_dim: int | None = None,
+        merge_input_norm: str | None = None,
+        merge_mean_bias: float = 0.0,
         eps: float = 1e-9,
     ):
         super().__init__()
@@ -44,6 +49,12 @@ class StructuredSelfAttentionPooling(nn.Module):
             raise ValueError("gamma_init must be non-negative.")
         if output_norm not in {None, "none", "layernorm", "l2"}:
             raise ValueError("output_norm must be one of: None, 'none', 'layernorm', 'l2'.")
+        if merge_mode not in {"residual", "router"}:
+            raise ValueError("merge_mode must be one of: 'residual', 'router'.")
+        if merge_temperature <= 0:
+            raise ValueError("merge_temperature must be positive.")
+        if merge_input_norm not in {None, "none", "layernorm", "l2"}:
+            raise ValueError("merge_input_norm must be one of: None, 'none', 'layernorm', 'l2'.")
 
         self.d_model = int(d_model)
         self.attn_hidden_dim = int(attn_hidden_dim)
@@ -52,6 +63,11 @@ class StructuredSelfAttentionPooling(nn.Module):
         self.output_norm_type = None if output_norm in {None, "none"} else str(output_norm)
         self.gamma_init = float(gamma_init)
         self.gamma_learnable = bool(gamma_learnable)
+        self.merge_mode = str(merge_mode)
+        self.merge_temperature = float(merge_temperature)
+        self.merge_hidden_dim = int(merge_hidden_dim or self.d_model)
+        self.merge_input_norm_type = None if merge_input_norm in {None, "none"} else str(merge_input_norm)
+        self.merge_mean_bias_init = float(merge_mean_bias)
         self.eps = float(eps)
 
         self.ws1 = nn.Linear(self.d_model, self.attn_hidden_dim, bias=False)
@@ -69,6 +85,29 @@ class StructuredSelfAttentionPooling(nn.Module):
             self.gamma = nn.Parameter(gamma_tensor)
         else:
             self.register_buffer("gamma", gamma_tensor)
+
+        if self.merge_input_norm_type == "layernorm":
+            self.merge_input_norm = nn.LayerNorm(self.d_model)
+        elif self.merge_input_norm_type == "l2":
+            self.merge_input_norm = L2Norm(eps=self.eps)
+        else:
+            self.merge_input_norm = None
+
+        if self.merge_mode == "router":
+            self.merge_router = nn.Sequential(
+                nn.Linear(self.d_model, self.merge_hidden_dim),
+                nn.GELU(),
+                nn.Linear(self.merge_hidden_dim, 1),
+            )
+            self.merge_bias = nn.Parameter(
+                torch.zeros(self.num_hops + 1, dtype=torch.float32)
+            )
+            if self.merge_mean_bias_init != 0.0:
+                with torch.no_grad():
+                    self.merge_bias[0] = self.merge_mean_bias_init
+        else:
+            self.merge_router = None
+            self.merge_bias = None
 
         self.last_attention_weights = None
         self.last_structured_embedding = None
@@ -114,10 +153,25 @@ class StructuredSelfAttentionPooling(nn.Module):
 
         attn_weights = torch.softmax(scores, dim=-1)  # (B, r, L)
         structured_embedding = torch.bmm(attn_weights, hidden_states)  # (B, r, D)
-        residual = structured_embedding.reshape(batch_size, self.num_hops * self.d_model)
-        residual = self.output_proj(self.dropout(residual))
-        gamma = self.gamma.to(dtype=hidden_states.dtype, device=hidden_states.device)
-        pooled = mean_pooled + gamma * residual
+        if self.merge_mode == "router":
+            components = torch.cat(
+                [mean_pooled.unsqueeze(1), structured_embedding],
+                dim=1,
+            )  # (B, r+1, D)
+            routed_inputs = components
+            if self.merge_input_norm is not None:
+                routed_inputs = self.merge_input_norm(routed_inputs)
+            router_scores = self.merge_router(routed_inputs).squeeze(-1)  # (B, r+1)
+            router_scores = router_scores + self.merge_bias.to(
+                device=router_scores.device, dtype=router_scores.dtype
+            ).unsqueeze(0)
+            router_weights = torch.softmax(router_scores / self.merge_temperature, dim=-1)
+            pooled = torch.sum(components * router_weights.unsqueeze(-1), dim=1)
+        else:
+            residual = structured_embedding.reshape(batch_size, self.num_hops * self.d_model)
+            residual = self.output_proj(self.dropout(residual))
+            gamma = self.gamma.to(dtype=hidden_states.dtype, device=hidden_states.device)
+            pooled = mean_pooled + gamma * residual
         if self.output_norm is not None:
             pooled = self.output_norm(pooled)
 
