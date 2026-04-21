@@ -57,6 +57,7 @@ logs/
 *.log
 profile*.json
 tmp/
+tools/
 test_results/
 Benchmark/BenchmarksOutputs/
 
