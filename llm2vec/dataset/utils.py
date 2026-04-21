@@ -5,6 +5,7 @@ from ..dataset import Derm1M_SimVariants
 from ..dataset import Derm1M_Variants_Eval
 from ..dataset import DermQA
 from ..dataset import DermVariants
+from ..dataset import DermVariants_30per
 
 def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
     """
@@ -23,6 +24,7 @@ def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
         "Derm1M_Variants_Eval": Derm1M_Variants_Eval,
         "DermQA":DermQA,
         "DermVariants": DermVariants,
+        "DermVariants_30per": DermVariants_30per,
     }
 
     if dataset_name not in dataset_mapping:
@@ -31,4 +33,8 @@ def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
     if split not in ["train", "validation", "test"]:
         raise NotImplementedError(f"Split {split} not supported.")
 
-    return dataset_mapping[dataset_name](split=split, file_path=file_path, **kwargs)
+    dataset_cls = dataset_mapping[dataset_name]
+    init_kwargs = {"split": split, **kwargs}
+    if file_path is not None:
+        init_kwargs["file_path"] = file_path
+    return dataset_cls(**init_kwargs)

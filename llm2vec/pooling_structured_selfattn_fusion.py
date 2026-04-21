@@ -53,9 +53,9 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
             raise ValueError("num_hops must be positive.")
         if merge_mode not in {"weighted_sum", "router"}:
             raise ValueError("merge_mode must be one of: 'weighted_sum', 'router'.")
-        if output_norm not in {None, "none", "layernorm", "l2", "rmsnorm"}:
+        if output_norm not in {None, "none", "layernorm", "rmsnorm"}:
             raise ValueError(
-                "output_norm must be one of: None, 'none', 'layernorm', 'l2', 'rmsnorm'."
+                "output_norm must be one of: None, 'none', 'layernorm', 'rmsnorm'."
             )
         if merge_input_norm not in {None, "none", "layernorm", "l2"}:
             raise ValueError(
@@ -110,8 +110,6 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
 
         if self.output_norm_type == "layernorm":
             self.output_norm = nn.LayerNorm(self.d_model)
-        elif self.output_norm_type == "l2":
-            self.output_norm = L2Norm(eps=self.eps)
         elif self.output_norm_type == "rmsnorm":
             self.output_norm = RMSNorm(self.d_model, eps=self.eps)
         else:

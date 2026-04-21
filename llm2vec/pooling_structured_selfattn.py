@@ -47,8 +47,8 @@ class StructuredSelfAttentionPooling(nn.Module):
             raise ValueError("num_hops must be positive.")
         if gamma_init < 0:
             raise ValueError("gamma_init must be non-negative.")
-        if output_norm not in {None, "none", "layernorm", "l2"}:
-            raise ValueError("output_norm must be one of: None, 'none', 'layernorm', 'l2'.")
+        if output_norm not in {None, "none", "layernorm"}:
+            raise ValueError("output_norm must be one of: None, 'none', 'layernorm'.")
         if merge_mode not in {"residual", "router"}:
             raise ValueError("merge_mode must be one of: 'residual', 'router'.")
         if merge_temperature <= 0:
@@ -76,8 +76,6 @@ class StructuredSelfAttentionPooling(nn.Module):
         self.output_proj = nn.Linear(self.num_hops * self.d_model, self.d_model)
         if self.output_norm_type == "layernorm":
             self.output_norm = nn.LayerNorm(self.d_model)
-        elif self.output_norm_type == "l2":
-            self.output_norm = L2Norm(eps=self.eps)
         else:
             self.output_norm = None
         gamma_tensor = torch.tensor(self.gamma_init, dtype=torch.float32)

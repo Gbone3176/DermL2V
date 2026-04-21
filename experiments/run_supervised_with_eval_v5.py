@@ -53,6 +53,30 @@ MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 MODEL_STATE_NAME = "pytorch_model.bin"
 
+
+def save_experiment_config_snapshot(
+    output_dir: str,
+    model_args,
+    data_args,
+    training_args,
+    custom_args,
+    eval_args,
+    config_source: Optional[str] = None,
+) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+    config_snapshot = {
+        **vars(model_args),
+        **vars(data_args),
+        **training_args.to_dict(),
+        **vars(custom_args),
+        **vars(eval_args),
+    }
+    if config_source is not None:
+        config_snapshot["_config_source"] = os.path.abspath(config_source)
+    config_snapshot["_resolved_output_dir"] = os.path.abspath(output_dir)
+    with open(os.path.join(output_dir, "experiment_config.json"), "w", encoding="utf-8") as f:
+        json.dump(config_snapshot, f, indent=4, ensure_ascii=False)
+
 def configure_torch_resume_loading() -> None:
     """
     Make checkpoint resume compatible with PyTorch>=2.6 defaults.
@@ -245,7 +269,10 @@ class ModelArguments:
     )
     selfattn_output_norm: str = field(
         default="layernorm",
-        metadata={"help": "Final normalization after structured self-attention pooling.", "choices": ["none", "layernorm", "l2"]},
+        metadata={
+            "help": "Final normalization after structured self-attention pooling.",
+            "choices": ["none", "layernorm", "rmsnorm"],
+        },
     )
     selfattn_gamma_init: float = field(
         default=1e-3,
@@ -348,6 +375,11 @@ class CustomArguments:
     loss_kwargs: Optional[Dict[str, Any]] = field(
         default_factory=dict,
         metadata={"help": "Extra keyword arguments passed to the selected loss class."},
+    )
+
+    swanlab_project: str = field(
+        default="LLM2Vec-supervised",
+        metadata={"help": "SwanLab project name used for this training run."},
     )
 
 
@@ -771,9 +803,11 @@ def main():
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments, CustomArguments, EvalArguments)
     )
+    config_source = None
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
+        config_source = sys.argv[1]
         model_args, data_args, training_args, custom_args, eval_args = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
@@ -804,7 +838,7 @@ def main():
     if accelerator.is_main_process:
         try:
             swanlab.init(
-                project="LLM2Vec-supervised",
+                project=custom_args.swanlab_project,
                 name="_".join(training_args.output_dir.split("/")[-2:])
                 if training_args.output_dir
                 else None,
@@ -848,6 +882,18 @@ def main():
         )
 
     training_args.output_dir = f"{training_args.output_dir}/{experiment_id}"
+
+    if accelerator.is_main_process:
+        save_experiment_config_snapshot(
+            output_dir=training_args.output_dir,
+            model_args=model_args,
+            data_args=data_args,
+            training_args=training_args,
+            custom_args=custom_args,
+            eval_args=eval_args,
+            config_source=config_source,
+        )
+    accelerator.wait_for_everyone()
 
     last_checkpoint = None
     if training_args.do_train and os.path.isdir(training_args.output_dir):

@@ -5,3 +5,4 @@ from .Derm1M_SimVariants import Derm1M_SimVariants
 from .Derm1M_Variants_Eval import Derm1M_Variants_Eval
 from .DermQA import DermQA
 from .DermVariants import DermVariants
+from .DermVariants_30per import DermVariants_30per

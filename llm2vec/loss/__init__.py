@@ -1,5 +1,8 @@
 from .HardNegativeNLLLoss import HardNegativeNLLLoss
 from .HardNegativeNLLLossV0 import HardNegativeNLLLoss as HardNegativeNLLLossV0
+from .HardNegativeNLLLossV0_1 import HardNegativeNLLLoss as HardNegativeNLLLossV0_1
+from .HardNegativeNLLLossV0_2 import HardNegativeNLLLoss as HardNegativeNLLLossV0_2
+from .HardNegativeNLLLossV0_3 import HardNegativeNLLLoss as HardNegativeNLLLossV0_3
 from .HardNegativeNLLLossV0StructuredSelfAttnAblation import (
     HardNegativeNLLLoss as HardNegativeNLLLossV0StructuredSelfAttnAblation,
 )
