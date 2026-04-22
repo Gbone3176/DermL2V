@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-04-21T14:34:36.604594",
+  "os": {
+    "system": "Linux",
+    "release": "3.10.0-1160.el7.x86_64",
+    "version": "#1 SMP Mon Oct 19 16:18:59 UTC 2020",
+    "machine": "x86_64",
+    "python_version": "3.11.5"
+  },
+  "cpu": {
+    "physical_cores": 64,
+    "logical_cores": 128,
+    "max_frequency_mhz": 3500.0,
+    "architecture": "x86_64",
+    "processor": "x86_64",
+    "current_frequency_mhz": 3.498578125000008
+  },
+  "memory": {
+    "total_gb": 2015.03,
+    "available_gb": 1845.04,
+    "used_gb": 163.74,
+    "percent_used": 8.4,
+    "swap_total_gb": 0.0,
+    "swap_available_gb": 0.0
+  },
+  "disk": {
+    "path": "/cpfs01/projects-HDD/cfff-906dc71fafda_HDD/gbw_21307130160/storage/BioMedNLP/llm2vec",
+    "total_gb": 15000.0,
+    "available_gb": 329.59,
+    "used_gb": 14670.41,
+    "percent_used": 97.8
+  },
+  "gpu": {
+    "nvidia_gpus": [],
+    "amd_gpus": [],
+    "apple_silicon": null,
+    "total_gpus": 0,
+    "available_backends": []
+  },
+  "recommendations": {
+    "parallel_processing": {
+      "strategy": "high_parallelism",
+      "suggested_workers": 126,
+      "libraries": [
+        "joblib",
+        "multiprocessing",
+        "dask"
+      ]
+    },
+    "memory_strategy": {
+      "strategy": "memory_abundant",
+      "note": "Can load most datasets into memory"
+    },
+    "gpu_acceleration": {
+      "available": false,
+      "note": "No GPU detected, use CPU-based libraries"
+    },
+    "large_data_handling": {
+      "strategy": "disk_abundant",
+      "note": "Sufficient space for large intermediate files"
+    }
+  }
+}
