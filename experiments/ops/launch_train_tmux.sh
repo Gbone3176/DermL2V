@@ -68,7 +68,7 @@ PY
 
 mkdir -p "$REPO_ROOT/$RESOLVED_OUTPUT_DIR"
 
-if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+if tmux has-session -t "=$SESSION_NAME" 2>/dev/null; then
   echo "tmux session already exists: $SESSION_NAME"
   exit 1
 fi

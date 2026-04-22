@@ -6,7 +6,7 @@ from .loss_utils import cos_sim, mismatched_sizes_all_gather
 class HardNegativeNLLLoss:
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 50.0,
         similarity_fct=cos_sim,
     ):
         self.scale = scale

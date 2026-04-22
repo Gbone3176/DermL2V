@@ -10,7 +10,7 @@ class HardNegativeNLLLoss:
     # 如果是，就把对应 logit mask 掉，避免最明显的 lexical / duplicate false negative。
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 50.0,
         similarity_fct=cos_sim,
     ):
         self.scale = scale

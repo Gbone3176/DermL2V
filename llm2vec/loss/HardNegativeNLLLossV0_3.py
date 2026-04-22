@@ -12,7 +12,7 @@ class HardNegativeNLLLoss:
     # 直觉上，相当于承认这些列本质上和主 positive 表达的是同一个目标。
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 50.0,
         similarity_fct=cos_sim,
     ):
         self.scale = scale

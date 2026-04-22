@@ -304,10 +304,6 @@ class ModelArguments:
             "choices": ["none", "layernorm", "l2"],
         },
     )
-    selfattn_merge_mean_bias: float = field(
-        default=3.0,
-        metadata={"help": "Initial bias toward the original mean-pooling view during merge."},
-    )
 
 
 @dataclass
@@ -973,7 +969,6 @@ def main():
         selfattn_merge_temperature=model_args.selfattn_merge_temperature,
         selfattn_merge_hidden_dim=model_args.selfattn_merge_hidden_dim,
         selfattn_merge_input_norm=model_args.selfattn_merge_input_norm,
-        selfattn_merge_mean_bias=model_args.selfattn_merge_mean_bias,
         torch_dtype=torch_dtype,
         attn_implementation=model_args.attn_implementation,
     )

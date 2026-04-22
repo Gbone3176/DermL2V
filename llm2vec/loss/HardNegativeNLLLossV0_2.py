@@ -11,7 +11,7 @@ class HardNegativeNLLLoss:
     # 这样可以避免“某个样本本来只是 A 的 hard negative，却被错误地拿去当 B/C/... 的负例”。
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 50.0,
         similarity_fct=cos_sim,
     ):
         self.scale = scale

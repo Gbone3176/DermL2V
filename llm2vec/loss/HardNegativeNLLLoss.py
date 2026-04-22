@@ -35,7 +35,7 @@ class HardNegativeNLLLoss(nn.Module):
     """
     def __init__(
         self,
-        scale: float = 20.0,
+        scale: float = 50.0,
         similarity_fct=cos_sim,
         lam: float = 0.2,
         normalize_mixed: bool = True,

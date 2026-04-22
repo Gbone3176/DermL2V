@@ -25,9 +25,10 @@ class RMSNorm(nn.Module):
 
 class StructuredSelfAttentionFusionPooling(nn.Module):
     """
-    Structured self-attention pooling that keeps the mean view and r attention
-    views separate, then fuses them directly instead of compressing r views into
-    a single residual branch first.
+    Structured self-attention pooling with a mean-pooling backbone and a routed
+    multi-hop residual branch. The router only dispatches across the structured
+    self-attention hop deltas relative to the mean-pooled view; the mean-pooled
+    view is kept outside the routing softmax.
     """
 
     def __init__(
@@ -37,11 +38,12 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
         num_hops: int = 8,
         output_dropout: float = 0.0,
         output_norm: str | None = "layernorm",
+        gamma_init: float = 1e-3,
+        gamma_learnable: bool = True,
         merge_mode: str = "router",
         merge_temperature: float = 1.0,
         merge_hidden_dim: int | None = None,
         merge_input_norm: str | None = "layernorm",
-        merge_mean_bias: float = 3.0,
         eps: float = 1e-9,
     ):
         super().__init__()
@@ -51,6 +53,8 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
             raise ValueError("attn_hidden_dim must be positive.")
         if num_hops <= 0:
             raise ValueError("num_hops must be positive.")
+        if gamma_init < 0:
+            raise ValueError("gamma_init must be non-negative.")
         if merge_mode not in {"weighted_sum", "router"}:
             raise ValueError("merge_mode must be one of: 'weighted_sum', 'router'.")
         if output_norm not in {None, "none", "layernorm", "rmsnorm"}:
@@ -67,6 +71,8 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
         self.num_hops = int(num_hops)
         self.output_dropout = float(output_dropout)
         self.output_norm_type = None if output_norm in {None, "none"} else str(output_norm)
+        self.gamma_init = float(gamma_init)
+        self.gamma_learnable = bool(gamma_learnable)
         self.merge_mode = str(merge_mode)
         self.merge_temperature = float(merge_temperature)
         self.merge_hidden_dim = (
@@ -77,12 +83,16 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
         self.merge_input_norm_type = (
             None if merge_input_norm in {None, "none"} else str(merge_input_norm)
         )
-        self.merge_mean_bias = float(merge_mean_bias)
         self.eps = float(eps)
 
         self.ws1 = nn.Linear(self.d_model, self.attn_hidden_dim, bias=False)
         self.ws2 = nn.Linear(self.attn_hidden_dim, self.num_hops, bias=False)
         self.dropout = nn.Dropout(self.output_dropout)
+        gamma_tensor = torch.tensor(self.gamma_init, dtype=torch.float32)
+        if self.gamma_learnable:
+            self.gamma = nn.Parameter(gamma_tensor)
+        else:
+            self.register_buffer("gamma", gamma_tensor)
 
         if self.merge_input_norm_type == "layernorm":
             self.merge_input_norm = nn.LayerNorm(self.d_model)
@@ -102,11 +112,9 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
         else:
             self.merge_router = None
 
-        # Bias the initial merge toward the original mean pooling view so the new
-        # module starts close to the existing embedding space.
-        self.merge_bias = nn.Parameter(torch.zeros(self.num_hops + 1))
-        with torch.no_grad():
-            self.merge_bias[0] = self.merge_mean_bias
+        # Kept for config backward compatibility. Routing now only happens across
+        # the structured SA hops, so there is no separate mean-view bias term.
+        self.merge_bias = nn.Parameter(torch.zeros(self.num_hops))
 
         if self.output_norm_type == "layernorm":
             self.output_norm = nn.LayerNorm(self.d_model)
@@ -117,6 +125,7 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
 
         self.last_attention_weights = None
         self.last_structured_embedding = None
+        self.last_delta_embedding = None
         self.last_merge_weights = None
 
     def _compute_penalty(self, attn_weights: torch.Tensor) -> torch.Tensor:
@@ -154,8 +163,7 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
     def _compute_merge_scores(self, views: torch.Tensor) -> torch.Tensor:
         temperature = max(self.merge_temperature, self.eps)
         if self.merge_mode == "weighted_sum":
-            anchor = views[:, :1, :]
-            scores = torch.sum(anchor * views, dim=-1) / temperature
+            scores = views.pow(2).sum(dim=-1) / temperature
         else:
             flat_views = views.reshape(-1, self.d_model)
             scores = self.merge_router(flat_views).reshape(views.size(0), views.size(1))
@@ -181,18 +189,22 @@ class StructuredSelfAttentionFusionPooling(nn.Module):
         structured_embedding = torch.bmm(attn_weights, hidden_states)  # (B, r, D)
         structured_embedding = self.dropout(structured_embedding)
 
-        views = torch.cat([mean_pooled.unsqueeze(1), structured_embedding], dim=1)
-        views = self._apply_input_norm(views)
-
-        merge_scores = self._compute_merge_scores(views)
+        delta_embedding = structured_embedding - mean_pooled.unsqueeze(1)
+        routed_views = self._apply_input_norm(delta_embedding)
+        merge_scores = self._compute_merge_scores(routed_views)
         merge_weights = torch.softmax(merge_scores, dim=-1)
-        pooled = torch.sum(views * merge_weights.unsqueeze(-1), dim=1)
+        fused_delta = torch.sum(
+            delta_embedding * merge_weights.unsqueeze(-1), dim=1
+        )
+        gamma = self.gamma.to(dtype=hidden_states.dtype, device=hidden_states.device)
+        pooled = mean_pooled + gamma * fused_delta
 
         if self.output_norm is not None:
             pooled = self.output_norm(pooled)
 
         self.last_attention_weights = attn_weights
         self.last_structured_embedding = structured_embedding
+        self.last_delta_embedding = delta_embedding
         self.last_merge_weights = merge_weights
         penalty = self._compute_penalty(attn_weights)
         return pooled, penalty

@@ -70,7 +70,6 @@ class LLM2Vec(nn.Module):
         selfattn_merge_temperature: float = 1.0,
         selfattn_merge_hidden_dim: Optional[int] = None,
         selfattn_merge_input_norm: Optional[str] = "layernorm",
-        selfattn_merge_mean_bias: float = 3.0,
     ):
         super().__init__()
         self.model = model
@@ -100,16 +99,19 @@ class LLM2Vec(nn.Module):
         self.selfattn_output_dropout = selfattn_output_dropout
         self.selfattn_output_norm = selfattn_output_norm
         self.selfattn_gamma_init = (
-            selfattn_gamma_init if self.pooling_mode == "structured_selfattn" else None
+            selfattn_gamma_init
+            if self.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}
+            else None
         )
         self.selfattn_gamma_learnable = (
-            selfattn_gamma_learnable if self.pooling_mode == "structured_selfattn" else None
+            selfattn_gamma_learnable
+            if self.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}
+            else None
         )
         self.selfattn_merge_mode = selfattn_merge_mode
         self.selfattn_merge_temperature = selfattn_merge_temperature
         self.selfattn_merge_hidden_dim = selfattn_merge_hidden_dim
         self.selfattn_merge_input_norm = selfattn_merge_input_norm
-        self.selfattn_merge_mean_bias = selfattn_merge_mean_bias
 
         # Initialize latent attention pooling when requested
         self.latent_attn: Optional[LatentAttentionPooling] = None
@@ -156,11 +158,12 @@ class LLM2Vec(nn.Module):
                 num_hops=self.selfattn_num_hops,
                 output_dropout=self.selfattn_output_dropout,
                 output_norm=self.selfattn_output_norm,
+                gamma_init=self.selfattn_gamma_init,
+                gamma_learnable=self.selfattn_gamma_learnable,
                 merge_mode=self.selfattn_merge_mode,
                 merge_temperature=self.selfattn_merge_temperature,
                 merge_hidden_dim=self.selfattn_merge_hidden_dim,
                 merge_input_norm=self.selfattn_merge_input_norm,
-                merge_mean_bias=self.selfattn_merge_mean_bias,
             )
         else:
             self.latent_attn = None
@@ -235,7 +238,6 @@ class LLM2Vec(nn.Module):
             "selfattn_merge_temperature",
             "selfattn_merge_hidden_dim",
             "selfattn_merge_input_norm",
-            "selfattn_merge_mean_bias",
         ]
         encoder_args = {
             key: kwargs.pop(key, None) for key in keys if kwargs.get(key) is not None
@@ -1068,9 +1070,8 @@ class LLM2Vec(nn.Module):
             "selfattn_merge_temperature": self.selfattn_merge_temperature,
             "selfattn_merge_hidden_dim": self.selfattn_merge_hidden_dim,
             "selfattn_merge_input_norm": self.selfattn_merge_input_norm,
-            "selfattn_merge_mean_bias": self.selfattn_merge_mean_bias,
         }
-        if self.pooling_mode == "structured_selfattn":
+        if self.pooling_mode in {"structured_selfattn", "structured_selfattn_fusion"}:
             llm2vec_config["selfattn_gamma_init"] = self.selfattn_gamma_init
             llm2vec_config["selfattn_gamma_learnable"] = self.selfattn_gamma_learnable
 
