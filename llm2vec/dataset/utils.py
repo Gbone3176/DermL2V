@@ -6,6 +6,7 @@ from ..dataset import Derm1M_Variants_Eval
 from ..dataset import DermQA
 from ..dataset import DermVariants
 from ..dataset import DermVariants_30per
+from ..dataset import DermVariants_60per
 
 def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
     """
@@ -25,6 +26,7 @@ def load_dataset(dataset_name, split="validation", file_path=None, **kwargs):
         "DermQA":DermQA,
         "DermVariants": DermVariants,
         "DermVariants_30per": DermVariants_30per,
+        "DermVariants_60per": DermVariants_60per,
     }
 
     if dataset_name not in dataset_mapping:
