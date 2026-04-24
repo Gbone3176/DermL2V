@@ -78,6 +78,8 @@ V0_1 = V0 + “把和 positive 完全重复的 negative 从 softmax 中移除”
 V0_2 = V0 + “explicit negative 改为按行专属，而不是全局共享”
 ```
 
+**实验证明, 在 V0_2 的损失函数的效果相对更好**
+
 ### `HardNegativeNLLLossV0_3.py`
 
 核心增量：

@@ -104,12 +104,15 @@ cluster_scripts/**
 experiments/retrospectives/
 experiments/src_downstream/
 experiments/src_downstream/**
+experiments/analysis/
+experiments/analysis/**
 train_configs/
 
 # Ignore only repo-root README on GitHub
 /README.md
 /AGENTS.md
-
+agent_rules/
+agent_rules/**
 # Ignore Archive directories anywhere in the repo
 Archive/
 **/Archive/
@@ -132,3 +135,5 @@ local_info/
 
 local_info/
 local_info/**
+.omx/
+.claude_resources.json
