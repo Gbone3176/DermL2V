@@ -30,7 +30,7 @@ from transformers.trainer_utils import get_last_checkpoint, seed_worker
 
 from beir.retrieval.evaluation import EvaluateRetrieval
 
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, PeftModel, get_peft_model
 
 from llm2vec.llm2vecV1 import LLM2Vec
 from llm2vec.dataset.utils import load_dataset
@@ -52,6 +52,7 @@ logger = get_logger(__name__, log_level="INFO")
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 MODEL_STATE_NAME = "pytorch_model.bin"
+TRAINER_STATE_NAME = "trainer_state.json"
 
 
 def save_experiment_config_snapshot(
@@ -99,8 +100,12 @@ def is_trainer_resumable_checkpoint(checkpoint_dir: str) -> bool:
         "pytorch_model.bin.index.json",
         "model.safetensors",
         "model.safetensors.index.json",
+        "adapter_model.bin",
+        "adapter_model.safetensors",
     )
-    return any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in required_model_files)
+    has_model_state = any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in required_model_files)
+    has_trainer_state = os.path.exists(os.path.join(checkpoint_dir, TRAINER_STATE_NAME))
+    return has_model_state and has_trainer_state
 
 
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
@@ -756,8 +761,13 @@ class LLM2VecSupervisedTrainer(Trainer):
         logger.info(f"Saving model checkpoint to {output_dir}")
 
         self.model.save(output_dir)
-        state_dict = state_dict if state_dict is not None else self.model.state_dict()
-        torch.save(state_dict, os.path.join(output_dir, MODEL_STATE_NAME))
+        if state_dict is not None or not isinstance(getattr(self.model, "model", None), PeftModel):
+            state_dict = state_dict if state_dict is not None else self.model.state_dict()
+            torch.save(state_dict, os.path.join(output_dir, MODEL_STATE_NAME))
+        else:
+            logger.info(
+                "Detected PEFT model; skipping duplicate full-state save and relying on adapter checkpoint files."
+            )
 
         # Good practice: save your training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, "training_args.bin"))
@@ -865,7 +875,7 @@ def main():
         if last_checkpoint is not None and not is_trainer_resumable_checkpoint(last_checkpoint):
             if accelerator.is_main_process:
                 logger.warning(
-                    "Found checkpoint at %s, but it does not contain Hugging Face resumable model files. "
+                    "Found checkpoint at %s, but it does not contain both trainer state and resumable model files. "
                     "Skipping automatic resume for this run.",
                     last_checkpoint,
                 )
@@ -1007,9 +1017,10 @@ def main():
         if not is_trainer_resumable_checkpoint(checkpoint):
             raise ValueError(
                 "resume_from_checkpoint points to a directory that is not resumable by transformers.Trainer: "
-                f"{checkpoint}. Expected one of "
+                f"{checkpoint}. Expected 'trainer_state.json' together with one of "
                 "'pytorch_model.bin', 'pytorch_model.bin.index.json', "
-                "'model.safetensors', or 'model.safetensors.index.json'."
+                "'model.safetensors', 'model.safetensors.index.json', "
+                "'adapter_model.bin', or 'adapter_model.safetensors'."
             )
     if checkpoint:
         configure_torch_resume_loading()
