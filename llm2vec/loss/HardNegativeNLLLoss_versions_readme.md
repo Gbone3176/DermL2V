@@ -354,6 +354,28 @@ V7AnglE = V6 + AnglE 风格相似度 / cosine-angle hybrid
 | `HardNegativeNLLLossV6.py` | 在 V5 上增加可选辅助损失 |
 | `HardNegativeNLLLossV7AnglE.py` | 在 V6 上引入 AnglE 风格相似度或 cosine-angle 混合相似度 |
 
+## V0_2 派生版本
+
+当前旧版 loss 文件均保留为历史存档，不重命名、不移动、不改变默认注册入口。新增的 `*_2` 文件表示“保留原版本实验思想，但把 raw explicit negative 改为 V0_2 的 row-aligned 语义”。
+
+共同规则：
+
+- `d_reps_neg` 只能为空，或与 `q_reps` / `d_reps_pos` 行数一致。
+- raw `neg_i` 只参与 `query_i` 自己那一行，不再作为全 batch 共享 negative pool。
+- 若 `neg_i` 与 `pos_i` 完全相同，该行 raw negative 会被 mask。
+- mixed negative 由 row-aligned `(pos_i, neg_i)` 生成；若该 raw negative 被判定为 duplicate positive，对应 mixed negative 也会从候选中 mask。
+
+| 文件 | 相对旧版本的 V0_2 化策略 |
+| --- | --- |
+| `HardNegativeNLLLossV0_2StructuredSelfAttnAblation.py` | V0_2 retrieval loss + 可选 aux loss |
+| `HardNegativeNLLLossV1_2.py` | 固定 `lam`，用本行 `neg_i` 生成本行 mixed negative |
+| `HardNegativeNLLLossV2_2.py` | V1_2 + focal-style 难样本重加权 |
+| `HardNegativeNLLLossV3_2.py` | 用 `s(q_i,pos_i)` 与 `s(q_i,neg_i)` 计算动态 `lam_i` 和 mixed margin penalty |
+| `HardNegativeNLLLossV4_2.py` | V1_2 + `lerp/slerp` mixed 构造 |
+| `HardNegativeNLLLossV5_2.py` | raw negative 不共享；只共享由 row-aligned pair 生成后的 mixed pool，并做 top-k |
+| `HardNegativeNLLLossV6_2.py` | V5_2 + 可选 aux loss |
+| `HardNegativeNLLLossV7_2AnglE.py` | V6_2 + AnglE / cosine-angle hybrid similarity |
+
 ## 演化主线总结
 
 如果按演化路线看，大致可以分成三条线：

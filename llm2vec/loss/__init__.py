@@ -2,15 +2,27 @@ from .HardNegativeNLLLoss import HardNegativeNLLLoss
 from .HardNegativeNLLLossV0 import HardNegativeNLLLoss as HardNegativeNLLLossV0
 from .HardNegativeNLLLossV0_1 import HardNegativeNLLLoss as HardNegativeNLLLossV0_1
 from .HardNegativeNLLLossV0_2 import HardNegativeNLLLoss as HardNegativeNLLLossV0_2
+from .HardNegativeNLLLossV0_2StructuredSelfAttnAblation import (
+    HardNegativeNLLLoss as HardNegativeNLLLossV0_2StructuredSelfAttnAblation,
+)
 from .HardNegativeNLLLossV0_3 import HardNegativeNLLLoss as HardNegativeNLLLossV0_3
 from .HardNegativeNLLLossV0StructuredSelfAttnAblation import (
     HardNegativeNLLLoss as HardNegativeNLLLossV0StructuredSelfAttnAblation,
 )
 from .HardNegativeNLLLossV1 import HardNegativeNLLLoss as HardNegativeNLLLossV1
+from .HardNegativeNLLLossV1_2 import HardNegativeNLLLoss as HardNegativeNLLLossV1_2
 from .HardNegativeNLLLossV2 import HardNegativeNLLLoss as HardNegativeNLLLossV2
+from .HardNegativeNLLLossV2_2 import HardNegativeNLLLoss as HardNegativeNLLLossV2_2
 from .HardNegativeNLLLossV3 import HardNegativeNLLLoss as HardNegativeNLLLossV3
+from .HardNegativeNLLLossV3_2 import HardNegativeNLLLoss as HardNegativeNLLLossV3_2
 from .HardNegativeNLLLossV4 import HardNegativeNLLLoss as HardNegativeNLLLossV4
+from .HardNegativeNLLLossV4_2 import HardNegativeNLLLoss as HardNegativeNLLLossV4_2
 from .HardNegativeNLLLossV5 import HardNegativeNLLLoss as HardNegativeNLLLossV5
+from .HardNegativeNLLLossV5_2 import HardNegativeNLLLoss as HardNegativeNLLLossV5_2
 from .HardNegativeNLLLossV6 import HardNegativeNLLLoss as HardNegativeNLLLossV6
+from .HardNegativeNLLLossV6_2 import HardNegativeNLLLoss as HardNegativeNLLLossV6_2
 from .HardNegativeNLLLossV7AnglE import HardNegativeNLLLoss as HardNegativeNLLLossV7AnglE
+from .HardNegativeNLLLossV7_2AnglE import (
+    HardNegativeNLLLoss as HardNegativeNLLLossV7_2AnglE,
+)
 from .utils import AVAILABLE_LOSS_CLASSES, list_available_losses, load_loss
