@@ -70,6 +70,15 @@ checkpoint-*/
 *.bin
 *.safetensors
 
+# zip files
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+*.gz
+*.bz2
+*.7z
+
 # ------------------------------
 # Notebooks / temporary files
 # ------------------------------
@@ -102,10 +111,21 @@ Thumbs.db
 # ------------------------------
 cluster_scripts/**
 experiments/retrospectives/
+
 experiments/src_downstream/
-experiments/src_downstream/**
+experiments/src_downstream/**/*.json
+experiments/src_downstream/**/manual/*.sh
+experiments/src_downstream/**/__pycache__/
+experiments/src_downstream/**/*.py[cod]
+experiments/src_downstream/**/archive/**
+experiments/src_downstream/**/deprecated/**
+
+experiments/src_downstream_back/
+experiments/src_downstream_back/**
+
 experiments/analysis/
 experiments/analysis/**
+experiments/case_study/**
 train_configs/
 
 # Ignore only repo-root README on GitHub
