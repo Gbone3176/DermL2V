@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -31,22 +32,35 @@ def configured_datasets(config_path: Path | None) -> list[tuple[str, str]]:
     ]
 
 
+def cp_step(cp_dir: Path) -> int | None:
+    if not cp_dir.name.startswith("cp"):
+        return None
+    try:
+        return int(cp_dir.name[2:])
+    except ValueError:
+        return None
+
+
 def collect_rows(method_dir: Path, datasets: list[tuple[str, str]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     cp_dirs = sorted(
-        (path for path in method_dir.iterdir() if path.is_dir() and path.name.startswith("cp")),
-        key=lambda path: int(path.name.replace("cp", "")),
+        (path for path in method_dir.iterdir() if path.is_dir() and cp_step(path) is not None),
+        key=lambda path: cp_step(path) or -1,
     )
     for cp_dir in cp_dirs:
         metrics = {}
-        missing = False
+        missing_files = []
         for file_stem, _ in datasets:
             path = cp_dir / f"{file_stem}.json"
             if not path.exists():
-                missing = True
+                missing_files.append(path.name)
                 break
             metrics[file_stem] = load_json(path)
-        if missing:
+        if missing_files:
+            print(
+                f"Skipping incomplete checkpoint {cp_dir}: missing {', '.join(missing_files)}",
+                file=sys.stderr,
+            )
             continue
         avg_ndcg = sum(metrics[name]["NDCG@10"] for name, _ in datasets) / len(datasets)
         avg_recall = sum(metrics[name]["Recall@10"] for name, _ in datasets) / len(datasets)
@@ -62,10 +76,9 @@ def collect_rows(method_dir: Path, datasets: list[tuple[str, str]]) -> list[dict
     return rows
 
 
-def best_steps(rows: list[dict[str, Any]], datasets: list[tuple[str, str]]) -> dict[str, str]:
-    best: dict[str, tuple[float, str]] = {}
+def best_values(rows: list[dict[str, Any]], datasets: list[tuple[str, str]]) -> dict[str, float]:
+    best: dict[str, float] = {}
     for row in rows:
-        cp = str(row["cp"])
         metrics = row["metrics"]
         candidate_metrics = {
             "Avg_NDCG@10": float(row["avg_ndcg"]),
@@ -76,9 +89,8 @@ def best_steps(rows: list[dict[str, Any]], datasets: list[tuple[str, str]]) -> d
             candidate_metrics[f"{file_stem}_NDCG@10"] = float(metrics[file_stem]["NDCG@10"])
             candidate_metrics[f"{file_stem}_Recall@10"] = float(metrics[file_stem]["Recall@10"])
         for key, value in candidate_metrics.items():
-            if key not in best or value > best[key][0]:
-                best[key] = (value, cp)
-    return {key: cp for key, (_, cp) in best.items()}
+            best[key] = max(best.get(key, float("-inf")), value)
+    return best
 
 
 def pct(value: float) -> str:
@@ -90,8 +102,12 @@ def fmt_pct(value: float, is_best: bool) -> str:
     return f"**{rendered}**" if is_best else rendered
 
 
+def is_best(value: float, best: dict[str, float], key: str) -> bool:
+    return abs(value - best[key]) < 1e-12
+
+
 def build_markdown(method_dir: Path, rows: list[dict[str, Any]], run_root: str | None, datasets: list[tuple[str, str]]) -> str:
-    best = best_steps(rows, datasets)
+    best = best_values(rows, datasets)
     lines = [
         "# Nonhomo Full Sweep Summary at @10",
         "",
@@ -118,13 +134,15 @@ def build_markdown(method_dir: Path, rows: list[dict[str, Any]], run_root: str |
         metrics = row["metrics"]
         values = [cp]
         for file_stem, _ in datasets:
-            values.append(fmt_pct(metrics[file_stem]["NDCG@10"], best.get(f"{file_stem}_NDCG@10") == cp))
-            values.append(fmt_pct(metrics[file_stem]["Recall@10"], best.get(f"{file_stem}_Recall@10") == cp))
+            ndcg = float(metrics[file_stem]["NDCG@10"])
+            recall = float(metrics[file_stem]["Recall@10"])
+            values.append(fmt_pct(ndcg, is_best(ndcg, best, f"{file_stem}_NDCG@10")))
+            values.append(fmt_pct(recall, is_best(recall, best, f"{file_stem}_Recall@10")))
         values.extend(
             [
-                fmt_pct(float(row["avg_ndcg"]), best.get("Avg_NDCG@10") == cp),
-                fmt_pct(float(row["avg_recall"]), best.get("Avg_Recall@10") == cp),
-                fmt_pct(float(row["avg"]), best.get("Avg") == cp),
+                fmt_pct(float(row["avg_ndcg"]), is_best(float(row["avg_ndcg"]), best, "Avg_NDCG@10")),
+                fmt_pct(float(row["avg_recall"]), is_best(float(row["avg_recall"]), best, "Avg_Recall@10")),
+                fmt_pct(float(row["avg"]), is_best(float(row["avg"]), best, "Avg")),
             ]
         )
         lines.append("| " + " | ".join(values) + " |")
