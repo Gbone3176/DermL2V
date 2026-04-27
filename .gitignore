@@ -112,7 +112,6 @@ Thumbs.db
 cluster_scripts/**
 experiments/retrospectives/
 
-experiments/src_downstream/
 experiments/src_downstream/**/*.json
 experiments/src_downstream/**/manual/*.sh
 experiments/src_downstream/**/__pycache__/
