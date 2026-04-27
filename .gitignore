@@ -50,6 +50,7 @@ swanlog/
 # Ignore any file/dir whose name contains result/output
 *result*
 *output*
+!experiments/src_downstream/Scripts/RT_text/summary/render_global_results.py
 
 # TensorBoard / profiling
 runs/
@@ -113,6 +114,11 @@ cluster_scripts/**
 experiments/retrospectives/
 
 experiments/src_downstream/**/*.json
+experiments/src_downstream/Scripts/CLS_text/
+experiments/src_downstream/Scripts/RT_text/plots/
+experiments/src_downstream/Scripts/RT_text/src/homo/
+experiments/src_downstream/Scripts/RT_text/src/nonhomo_full/nonhomo_RT_bm25_multi_full.py
+experiments/src_downstream/Scripts/RT_text/src/nonhomo_full/nonhomo_RT_nvembed_full.py
 experiments/src_downstream/**/manual/*.sh
 experiments/src_downstream/**/__pycache__/
 experiments/src_downstream/**/*.py[cod]
