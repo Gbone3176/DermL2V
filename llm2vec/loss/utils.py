@@ -21,8 +21,14 @@ from .HardNegativeNLLLossV4 import HardNegativeNLLLoss as HardNegativeNLLLossV4
 from .HardNegativeNLLLossV4_2 import HardNegativeNLLLoss as HardNegativeNLLLossV4_2
 from .HardNegativeNLLLossV5 import HardNegativeNLLLoss as HardNegativeNLLLossV5
 from .HardNegativeNLLLossV5_2 import HardNegativeNLLLoss as HardNegativeNLLLossV5_2
+from .HardNegativeNLLLossV5_2_2 import (
+    HardNegativeNLLLoss as HardNegativeNLLLossV5_2_2,
+)
 from .HardNegativeNLLLossV6 import HardNegativeNLLLoss as HardNegativeNLLLossV6
 from .HardNegativeNLLLossV6_2 import HardNegativeNLLLoss as HardNegativeNLLLossV6_2
+from .HardNegativeNLLLossV6_2_2 import (
+    HardNegativeNLLLoss as HardNegativeNLLLossV6_2_2,
+)
 from .HardNegativeNLLLossV7AnglE import HardNegativeNLLLoss as HardNegativeNLLLossV7AnglE
 from .HardNegativeNLLLossV7_2AnglE import (
     HardNegativeNLLLoss as HardNegativeNLLLossV7_2AnglE,
@@ -54,8 +60,10 @@ LOSS_REGISTRY = {
     "HardNegativeNLLLossV4_2": HardNegativeNLLLossV4_2,
     "HardNegativeNLLLossV5": HardNegativeNLLLossV5,
     "HardNegativeNLLLossV5_2": HardNegativeNLLLossV5_2,
+    "HardNegativeNLLLossV5_2_2": HardNegativeNLLLossV5_2_2,
     "HardNegativeNLLLossV6": HardNegativeNLLLossV6,
     "HardNegativeNLLLossV6_2": HardNegativeNLLLossV6_2,
+    "HardNegativeNLLLossV6_2_2": HardNegativeNLLLossV6_2_2,
     "HardNegativeNLLLossV7AnglE": HardNegativeNLLLossV7AnglE,
     "HardNegativeNLLLossV7_2AnglE": HardNegativeNLLLossV7_2AnglE,
 }

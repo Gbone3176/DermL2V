@@ -45,7 +45,9 @@ are always V0_2-based:
 | `HardNegativeNLLLossV3_2` | Dynamic-lambda MixCSE on V0_2. Computes `lam_i` from `sim(q_i, pos_i)` and `sim(q_i, neg_i)`, then adds a mixed-negative margin penalty. |
 | `HardNegativeNLLLossV4_2` | V0_2 SlerpMixCSE. Uses row-aligned `(pos_i, neg_i)` and supports `lerp` or `slerp` interpolation. |
 | `HardNegativeNLLLossV5_2` | V0_2 top-k shared mixed-pool loss. Raw negatives stay row-private; generated mixed candidates form a shared pool, and each query keeps top-k mixed candidates. |
+| `HardNegativeNLLLossV5_2_2` | V5_2 variant that always includes each query's own row-aligned mixed negative, then fills the remaining mixed slots with top-k non-own shared mixed candidates. |
 | `HardNegativeNLLLossV6_2` | V5_2 plus optional auxiliary loss. This is the V0_2 replacement for SA + SM / SlerpMixCSE experiments. |
+| `HardNegativeNLLLossV6_2_2` | V6_2 variant with the V5_2_2 mixed-candidate policy: own mixed negative is always included, with remaining mixed slots filled by top-k non-own shared mixed candidates. |
 | `HardNegativeNLLLossV7_2AnglE` | V6_2 plus AnglE-style or cosine-angle hybrid similarity. This is the V0_2 replacement for angle-similarity SA/SM experiments. |
 
 ## Helper Module
@@ -65,5 +67,7 @@ Use these defaults for new experiments:
 | Basic fixed-lambda MixCSE | `HardNegativeNLLLossV1_2` |
 | SlerpMixCSE, one mixed candidate per row | `HardNegativeNLLLossV4_2` |
 | Top-k shared SlerpMixCSE | `HardNegativeNLLLossV5_2` |
+| Top-k shared SlerpMixCSE with forced own mixed negative | `HardNegativeNLLLossV5_2_2` |
 | SA + top-k shared SlerpMixCSE | `HardNegativeNLLLossV6_2` |
+| SA + top-k shared SlerpMixCSE with forced own mixed negative | `HardNegativeNLLLossV6_2_2` |
 | SA + top-k shared SlerpMixCSE + AnglE similarity | `HardNegativeNLLLossV7_2AnglE` |
