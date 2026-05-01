@@ -53,6 +53,16 @@ MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 MODEL_STATE_NAME = "pytorch_model.bin"
 TRAINER_STATE_NAME = "trainer_state.json"
+FULL_MODEL_STATE_NAMES = (
+    "pytorch_model.bin",
+    "pytorch_model.bin.index.json",
+    "model.safetensors",
+    "model.safetensors.index.json",
+)
+ADAPTER_MODEL_STATE_NAMES = (
+    "adapter_model.bin",
+    "adapter_model.safetensors",
+)
 
 
 def save_experiment_config_snapshot(
@@ -95,17 +105,18 @@ def configure_torch_resume_loading() -> None:
 
 
 def is_trainer_resumable_checkpoint(checkpoint_dir: str) -> bool:
-    required_model_files = (
-        "pytorch_model.bin",
-        "pytorch_model.bin.index.json",
-        "model.safetensors",
-        "model.safetensors.index.json",
-        "adapter_model.bin",
-        "adapter_model.safetensors",
-    )
+    required_model_files = FULL_MODEL_STATE_NAMES + ADAPTER_MODEL_STATE_NAMES
     has_model_state = any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in required_model_files)
     has_trainer_state = os.path.exists(os.path.join(checkpoint_dir, TRAINER_STATE_NAME))
     return has_model_state and has_trainer_state
+
+
+def has_adapter_model_checkpoint(checkpoint_dir: str) -> bool:
+    return any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in ADAPTER_MODEL_STATE_NAMES)
+
+
+def has_full_model_checkpoint(checkpoint_dir: str) -> bool:
+    return any(os.path.exists(os.path.join(checkpoint_dir, name)) for name in FULL_MODEL_STATE_NAMES)
 
 
 def prepare_for_tokenization(model, text, pooling_mode="mean"):
@@ -753,6 +764,78 @@ class LLM2VecSupervisedTrainer(Trainer):
             dataloader_params["worker_init_fn"] = seed_worker
 
         return self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
+
+    def _load_from_checkpoint(self, resume_from_checkpoint, model=None):
+        if (
+            resume_from_checkpoint is not None
+            and has_adapter_model_checkpoint(resume_from_checkpoint)
+            and not has_full_model_checkpoint(resume_from_checkpoint)
+        ):
+            llm2vec_model = model if model is not None else self.model
+            if hasattr(llm2vec_model, "module"):
+                llm2vec_model = llm2vec_model.module
+            peft_model = getattr(llm2vec_model, "model", None)
+            if isinstance(peft_model, PeftModel):
+                logger.info(
+                    "Loading adapter-only LLM2Vec checkpoint from %s; "
+                    "Trainer will still restore optimizer, scheduler, trainer state, and RNG state.",
+                    resume_from_checkpoint,
+                )
+                self._load_inner_peft_adapter(peft_model, resume_from_checkpoint)
+                if hasattr(llm2vec_model, "_load_latent_attention_weights"):
+                    llm2vec_model._load_latent_attention_weights(resume_from_checkpoint)
+                if hasattr(llm2vec_model, "_load_structured_self_attention_weights"):
+                    llm2vec_model._load_structured_self_attention_weights(resume_from_checkpoint)
+                return
+
+        return self._call_super_load_from_checkpoint(resume_from_checkpoint, model=model)
+
+    def _call_super_load_from_checkpoint(self, resume_from_checkpoint, model=None):
+        if model is None:
+            return super()._load_from_checkpoint(resume_from_checkpoint)
+        return super()._load_from_checkpoint(resume_from_checkpoint, model=model)
+
+    def _load_inner_peft_adapter(self, peft_model: PeftModel, checkpoint_dir: str) -> None:
+        adapter_state_path = os.path.join(checkpoint_dir, "adapter_model.safetensors")
+        if os.path.exists(adapter_state_path):
+            from safetensors.torch import load_file  # type: ignore
+
+            adapter_state_dict = load_file(adapter_state_path)
+        else:
+            adapter_state_path = os.path.join(checkpoint_dir, "adapter_model.bin")
+            adapter_state_dict = torch.load(adapter_state_path, map_location="cpu")
+
+        try:
+            from peft import set_peft_model_state_dict
+
+            adapter_name = getattr(peft_model, "active_adapter", None)
+            if callable(adapter_name):
+                adapter_name = adapter_name()
+            if isinstance(adapter_name, (list, tuple)):
+                adapter_name = adapter_name[0] if adapter_name else None
+            if adapter_name is None:
+                adapter_name = "default"
+            load_result = set_peft_model_state_dict(
+                peft_model,
+                adapter_state_dict,
+                adapter_name=adapter_name,
+            )
+        except TypeError:
+            load_result = set_peft_model_state_dict(peft_model, adapter_state_dict)
+        except ImportError:
+            load_result = peft_model.load_state_dict(adapter_state_dict, strict=False)
+
+        missing = getattr(load_result, "missing_keys", None)
+        unexpected = getattr(load_result, "unexpected_keys", None)
+        if missing is not None or unexpected is not None:
+            logger.info(
+                "Loaded PEFT adapter weights from %s (missing=%s, unexpected=%s)",
+                adapter_state_path,
+                len(missing or []),
+                len(unexpected or []),
+            )
+        else:
+            logger.info("Loaded PEFT adapter weights from %s", adapter_state_path)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         # If we are executing this function, we are the process zero, so we don't check for that.
