@@ -1,5 +1,18 @@
 # RT-full Test Logic
 
+## Path Notation
+
+This document uses machine-independent path placeholders:
+
+- `<repo_root>`: repository checkout root.
+- `<rt_text_root>`: `<repo_root>/experiments/src_downstream/Scripts/RT_text`.
+- `<config_path>`: RT-full eval config, usually under `<rt_text_root>/configs/`.
+- `<training_run_root>`: method-specific training run root from `methods.<method>.run_root` in `<config_path>`.
+- `<rt_nonhomo_full_output_root>`: output root from `rt_nonhomo_full_output_root` in `<config_path>`.
+- `<rt_dataset_root>`: dataset root from `rt_dataset_root`, or explicit dataset paths from `rt_full_datasets`, in `<config_path>`.
+
+Machine-specific absolute prefixes and local cache paths should live in the local eval config or `local_info/`, not in this logic document.
+
 ## Pipeline
 
 1. `launch/sweep_checkpoints.py` reads an eval config from `configs/`.
@@ -40,7 +53,7 @@ Avg = (Avg_NDCG@10 + Avg_Recall@10) / 2
 Config:
 
 ```text
-experiments/src_downstream/Scripts/RT_text/configs/derml2v_loss02_rt_full_eval_paths.json
+<rt_text_root>/configs/derml2v_loss02_rt_full_eval_paths.json
 ```
 
 Default RT-full encode batch size for this config:
@@ -52,22 +65,28 @@ Default RT-full encode batch size for this config:
 Training run root:
 
 ```text
-output/Llama31_8b_mntp-supervised/DermL2VLoss02/SM/lr2e-5_k16_lerp/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16
+<training_run_root>
+```
+
+For the current Loss02 SM run, `<training_run_root>` resolves to the repository-relative training output:
+
+```text
+<repo_root>/output/Llama31_8b_mntp-supervised/DermL2VLoss02/SM/lr2e-5_k16_lerp/DermVariants_train_m-Meta-Llama-3.1-8B-Instruct_p-mean_b-2048_l-512_bidirectional-True_e-2_s-42_w-10_lr-2e-05_lora_r-16
 ```
 
 Output layout:
 
 ```text
-output/downstream/DermL2V/RT_text/nonhomo_full/DermL2VLoss02/SM/k16_lerp_lr2e-5/cp<step>/<dataset>.json
+<rt_nonhomo_full_output_root>/DermL2VLoss02/SM/k16_lerp_lr2e-5/cp<step>/<dataset>.json
 ```
 
 ## Local Dataset Set
 
-The RT-full config now uses the four canonical datasets under `local_info/rt_full_data/`:
+The RT-full config should use the four canonical datasets through `<rt_dataset_root>` or explicit `rt_full_datasets` entries:
 
 - `DermSynth_knowledgebase`
 - `MedMCQA_RT`
 - `MedQuAD_dermatology_qa_retrieval_doclt300`
 - `sce_retrieval`
 
-All new RT-full evaluations should point to these local canonical files instead of older benchmark copies or machine-specific `/storage/...` paths.
+All new RT-full evaluations should point to these local canonical files through config-resolved paths instead of older benchmark copies or machine-specific absolute paths.
