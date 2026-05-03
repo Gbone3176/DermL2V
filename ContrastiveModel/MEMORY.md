@@ -33,8 +33,9 @@
 
 - BERT-based model experiments should use the `l2v` conda environment by default.
 - Qwen3 or modern embedding models should use the `qwen3` conda environment by default.
-- DermVariants training data:
-  - `/storage/dataset/dermatoscop/Derm1M/DermVariantsData`
+- Resolve machine-specific dataset and model paths through `local_info/`, especially `local_info/local_path.md` and `local_info/models_info.md`.
+- Do not hard-code machine-local absolute paths into reusable training scripts or workflow notes.
+- DermVariants training data is referred to as `DermVariantsData`; the concrete local path belongs in `local_info/`.
 - The DermVariants JSONL files contain:
   - `original`
   - `positive_variant`
@@ -67,3 +68,97 @@
 - `BioClinicalBERT/`: BioClinicalBERT-only training, run, and loading notes.
 - `BMRetriever7B/`: BMRetriever-7B-only LoRA training, run, and loading notes.
 - Large-model directories should be added later without changing the BERT directories.
+
+## Fine-Tuning Workflow
+
+Use this workflow when moving the contrastive-model fine-tuning code to another machine or launching a new comparison-model run.
+
+1. Prepare machine-local references.
+   - Check `local_info/models_info.md` for model identifiers or local model-cache entries.
+   - Check `local_info/local_path.md` for dataset and adapter roots.
+   - Keep concrete machine paths in `local_info/`; scripts should expose them as environment overrides or documented defaults.
+
+2. Choose the correct model directory.
+   - PubMedBERT: `ContrastiveModel/PubMedBERT/`
+   - BioClinicalBERT: `ContrastiveModel/BioClinicalBERT/`
+   - BMRetriever-7B: `ContrastiveModel/BMRetriever7B/`
+   - Qwen3-Embedding-8B: `ContrastiveModel/Qwen3Embedding8B/`
+   - NV-Embed-v2: `ContrastiveModel/nvembed2/`
+   - Shared dataset/loss/model helpers: `ContrastiveModel/shared/`
+
+3. Start with a smoke test.
+   - Use a short run before full training.
+   - Use `max_steps` or the directory's smoke script where available.
+   - Disable final checkpoint saving during pure capacity or stability probes when supported.
+   - Confirm that model loading, data loading, first optimizer steps, loss logging, and checkpoint or skip-save behavior match expectation.
+   - Treat any `nan`, `inf`, CUDA OOM, NCCL timeout, or checkpoint shape mismatch as a blocker before full training.
+
+4. Determine memory-safe batch shape.
+   - Record `per_device_batch_size`, `gradient_accumulation_steps`, number of GPUs, `max_length`, precision mode, and effective batch size.
+   - Effective batch size is `per_device_batch_size * gradient_accumulation_steps * num_gpus`.
+   - The comparison target for formal runs is usually effective batch size `512`, unless the user explicitly chooses another target.
+   - If a model cannot fit the desired per-device batch, reduce per-device batch and compensate with gradient accumulation.
+
+5. Launch formal training in tmux.
+   - Use a short readable tmux session name tied to the model and run.
+   - Keep the session available after launch for inspection.
+   - Do not delete tmux sessions just because training finished unless cleanup is explicitly requested or the session is stale and no longer useful.
+   - Put training outputs, logs, debug runs, probes, and checkpoints under the model directory inside `ContrastiveModel/`.
+   - Do not put comparison-model fine-tuning outputs under repository-level zero-shot output folders.
+
+6. Monitor training.
+   - Check GPU memory and utilization shortly after launch.
+   - Confirm loss appears after the first optimizer step.
+   - Watch the first few optimizer steps carefully; many numerical failures appear immediately after the first update.
+   - Confirm intermediate checkpoints are written at the configured save interval.
+   - If a run is manually stopped, record the latest complete checkpoint and whether a final checkpoint exists.
+
+7. Run RT nonhomo-full evaluation.
+   - Use the model-specific `rt_full_eval/` scripts when present.
+   - Keep evaluation outputs under the corresponding model's `rt_full_eval/output/` directory.
+   - Summaries should include checkpoint rows, zero-shot baseline rows when available, percent-formatted `NDCG@10` and `Recall@10`, average columns, and a best-checkpoint line.
+   - Do not overwrite repository-level zero-shot outputs; read them only as baselines.
+
+8. Sync for another machine.
+   - Commit and push only training-related code, configs, launch scripts, lightweight documentation, and shared helpers.
+   - Do not commit checkpoints, `output/`, `logs/`, `debug_runs/`, `bs_probe/`, `resume_probe/`, `__pycache__/`, or generated tokenizer/model artifacts.
+   - If evaluation or retrospective files are unrelated to the transfer goal, leave them uncommitted unless explicitly requested.
+
+## Model-Specific Training Notes
+
+- PubMedBERT:
+  - Uses full-parameter fine-tuning.
+  - Uses mean pooling by default for `NeuML/pubmedbert-base-embeddings`.
+  - Formal local run used effective batch size `512`, intermediate checkpoints every `25` optimizer steps, and a final checkpoint.
+
+- BioClinicalBERT:
+  - Uses full-parameter fine-tuning.
+  - Uses CLS pooling and raw text formatting by default.
+  - Formal local run used effective batch size `512`, intermediate checkpoints every `25` optimizer steps, and a final checkpoint.
+
+- BMRetriever-7B:
+  - Uses LoRA fine-tuning.
+  - Uses BMRetriever-style query/passage instructions, explicit EOS handling, last-token pooling, and row-aligned hard negatives.
+  - The best RT nonhomo-full checkpoint observed so far was an early checkpoint, so do not assume later checkpoints are better without evaluation.
+
+- Qwen3-Embedding-8B:
+  - Uses LoRA fine-tuning in the `qwen3` environment.
+  - The local V100 run was stopped early after the loss plateaued.
+  - RT nonhomo-full improvement over the zero-shot baseline was small, so further training should be revisited on a larger-memory machine with room for better batch, sequence length, or optimizer experiments.
+
+- NV-Embed-v2:
+  - Uses LoRA on the embedding model plus trainable latent attention.
+  - Latent attention should not be frozen by default because it is the model's pooling mechanism.
+  - Current V100 fp16 training is numerically unstable: full training and `lr=1e-6` smoke tests produced `nan` shortly after the first optimizer update.
+  - Do not treat the failed NV checkpoints as valid training products.
+  - Next stability probes should test fp32 trainable modules, larger Adam epsilon, finite-value checks before and after optimizer updates, and smaller per-device batch sizes before returning to formal training.
+
+## Completion Checklist
+
+- Training script compiles.
+- Smoke test reaches at least two optimizer steps without non-finite values.
+- Full run writes expected checkpoints or is intentionally stopped at a known checkpoint.
+- Logs identify model, batch shape, learning rate, temperature/scale, precision, and effective batch size.
+- RT nonhomo-full summary includes zero-shot baseline if available.
+- Best checkpoint is selected from evaluation results, not from latest checkpoint by default.
+- Transfer commits include code and configs only, not local artifacts.
