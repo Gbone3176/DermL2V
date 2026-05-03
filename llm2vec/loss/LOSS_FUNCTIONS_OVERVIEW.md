@@ -4,6 +4,97 @@ This document describes the purpose of each `HardNegativeNLLLoss` variant in thi
 folder. Historical original losses and V0_2-based losses are separated because
 they use different explicit-negative semantics.
 
+## V0 系列损失函数的核心差异
+
+这四个早期版本都遵循同一个 InfoNCE 框架：对每个 query `q_i`，分子放正例，
+分母放候选集合。它们真正的区别不在于最外层 loss 形式，而在于如何处理
+显式 negative，以及如何处理和 positive 完全重复的 false negative。
+
+统一记号：
+
+- `q_i`：第 `i` 行 query
+- `p_i`：与 `q_i` 行对齐的 positive
+- `n_k`：显式 negative
+- `P = {p_1, ..., p_B}`：batch 内所有 positive
+- `N = {n_1, ..., n_M}`：所有显式 negative
+- `F_i = {n_k | ||n_k - p_i||_2 < 1e-6}`：对 `q_i` 来说，其实和 `p_i`
+  完全重复的显式 negative
+- `z(q, c) = scale * sim(q, c)`：经过 scale 放大的相似度 logit
+
+统一视角可以写成：
+
+$$
+L_i = -\log
+\frac{\sum_{c \in Y_i}\exp z(q_i,c)}
+     {\sum_{c \in C_i}\exp z(q_i,c)}
+$$
+
+其中 `Y_i` 是 query `q_i` 的正例集合，`C_i` 是分母中的候选集合。大多数版本中
+`Y_i = {p_i}`；只有 V0_3 会把重复 false negative 也加入正例集合。
+
+| Loss | 分母候选集合 `C_i` | 正例集合 `Y_i` | 核心行为 |
+| --- | --- | --- | --- |
+| `V0` | `P + all N` | `{p_i}` | 所有显式 negative 都被全局共享，每个 query 都会把它们当作负例。 |
+| `V0_1` | `P + (N - F_i)` | `{p_i}` | 与 V0 类似，但对当前 query 来说重复的 false negative 会从分母中删除。 |
+| `V0_2` | `P + {n_i}` | `{p_i}` | 显式 negative 是 row-private 的：`n_i` 只影响 `q_i`，不会影响其他 query；如果 `n_i == p_i`，则 mask 掉。 |
+| `V0_3` | `P + all N` | `{p_i} + F_i` | 分母和 V0 一样，但重复 false negative 不删除，而是升级为额外正例。 |
+
+### 候选池直观视图
+
+对同一个 query `q_i`，四个版本可以理解为：
+
+```text
+V0:
+  分子:  p_i
+  分母:  p_1, ..., p_B, n_1, ..., n_M
+
+V0_1:
+  分子:  p_i
+  分母:  p_1, ..., p_B, 所有不与 p_i 重复的 n_k
+
+V0_2:
+  分子:  p_i
+  分母:  p_1, ..., p_B, 仅当前行的 n_i
+
+V0_3:
+  分子:  p_i，以及 N 中所有与 p_i 重复的 n_k
+  分母:  p_1, ..., p_B, n_1, ..., n_M
+```
+
+### 最小公式表达
+
+V0 是最基础的全局 negative 版本：
+
+$$
+C_i = P \cup N,\qquad Y_i = \{p_i\}
+$$
+
+V0_1 只改变分母：删除重复 false negative。
+
+$$
+C_i = P \cup (N \setminus F_i),\qquad Y_i = \{p_i\}
+$$
+
+V0_2 改变显式 negative 的作用范围：从全局共享变为行内私有。
+
+$$
+C_i = P \cup \{n_i\},\qquad Y_i = \{p_i\}
+$$
+
+如果 `n_i == p_i`，则 `n_i` 会被 mask 掉。
+
+V0_3 保留全局 negative 分母，但把分子从 single-positive 改成 multi-positive：
+
+$$
+C_i = P \cup N,\qquad Y_i = \{p_i\} \cup F_i
+$$
+
+因此，最关键的对比是：
+
+- `V0_1`：遇到重复 false negative，选择“从竞争集合里删除”。
+- `V0_3`：遇到重复 false negative，选择“把它也算作正例”。
+- `V0_2`：显式 negative 不再全局共享，而是“只和自己对应的 query 比较”。
+
 ## Original / Historical Losses
 
 These files are preserved as historical implementations. They should be treated
