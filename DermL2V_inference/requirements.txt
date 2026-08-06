@@ -1,0 +1,7 @@
+numpy==1.26.4
+packaging
+peft==0.17.1
+safetensors==0.6.2
+torch==2.5.1
+tqdm==4.67.1
+transformers==4.44.2
