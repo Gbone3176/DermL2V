@@ -1,35 +1,19 @@
 # DermL2V Inference Weights Manifest
 
-Prepared on 2026-07-18 for the standalone `DermL2V` inference repository.
+The GitHub repository contains no model weights. Download the following model
+chain into the listed local directories before running `infer_derml2v.py`.
 
-## Bundled Weights
+| Local path | Source | Role |
+|---|---|---|
+| `weights/Meta-Llama-3.1-8B-Instruct` | `meta-llama/Meta-Llama-3.1-8B-Instruct` | Gated Llama base model |
+| `weights/llm2vec-mntp` | `McGill-NLP/LLM2Vec-Meta-Llama-31-8B-Instruct-mntp` | First LLM2Vec adapter |
+| `weights/llm2vec-mntp-supervised` | `McGill-NLP/LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised` | Second LLM2Vec adapter |
+| `weights/DermL2V_adapter` | `Gbone3176/DermL2V` | Final DermL2V adapter and structured self-attention parameters |
 
-These adapter/checkpoint weights are copied into this directory and are used by
-`infer_derml2v.py` by default when present.
+The base model is gated and subject to the Llama 3.1 Community License. Accept
+the upstream license and authenticate with `hf auth login` before downloading.
 
-| Local path | Approx. size | Source |
-|---|---:|---|
-| `weights/llm2vec-mntp` | 169M | `McGill-NLP/LLM2Vec-Meta-Llama-31-8B-Instruct-mntp` |
-| `weights/llm2vec-mntp-supervised` | 161M | `McGill-NLP/LLM2Vec-Meta-Llama-31-8B-Instruct-mntp-supervised` |
-| `weights/DermL2V_adapter` | 429M | DermL2V adapter release |
-
-The copied Hugging Face snapshots were dereferenced, so `weights/` contains real
-files rather than symlinks back into the local cache.
-
-## External Base Model
-
-The Meta-Llama-3.1-8B-Instruct base model is not vendored here. It is about 30G
-on this machine and should be obtained separately according to the upstream Meta
-Llama license.
-
-For a portable release, either place the base model at:
-
-```text
-weights/Meta-Llama-3.1-8B-Instruct
-```
-
-or pass it explicitly at runtime:
-
-```bash
-python infer_derml2v.py --base_model_name_or_path /path/to/Meta-Llama-3.1-8B-Instruct ...
-```
+The final adapter directory must include both `adapter_model.safetensors` and
+`structured_self_attn.pt`. The first is the standard PEFT adapter filename; do
+not rename it. See the [README](README.md#preparation) for environment setup
+and exact download commands.
