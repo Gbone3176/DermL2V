@@ -139,23 +139,14 @@ Lower `--batch_size` if GPU memory is insufficient. Results are written to
 `summary_at10.md`. Use `--rt_dataset DermSynth` (or another dataset key) to
 evaluate a subset, and `--eval_limit N` only for a quick debugging run.
 
-## Common setup errors
+## License
 
-- **"No DermL2V checkpoint found"**: download the final adapter to
-  `weights/DermL2V_adapter`, pass `--checkpoint_dir`, or set
-  `DERML2V_CHECKPOINT_DIR`.
-- **Gated-model access error**: accept the Llama license and run `hf auth login`
-  again with an authorized Hugging Face account.
-- **Missing or tiny JSONL files**: install Git LFS and run `git lfs pull`.
-- **CUDA out of memory**: decrease `--batch_size`; CPU mode is available with
-  `--device cpu` but is much slower.
+The source code in this repository is released under the
+[MIT License](LICENSE), copyright (c) 2024 McGill NLP. You may use, copy,
+modify, merge, publish, distribute, sublicense, and sell copies of the code,
+provided that the copyright notice and license text are included in substantial
+copies of the software. The code is provided without warranty.
 
-## Repository contents
-
-- `infer_derml2v.py`: command-line inference and RT-full evaluation entry point
-- `derml2v_llm2vec/`: vendored LLM2Vec-compatible inference implementation
-- `data/`: four Git LFS-managed RT-full test files
-- `WEIGHTS_MANIFEST.md`: model-chain provenance and expected directories
-- `DATA_MANIFEST.md`: test-set record counts and details
-
-No training code or model weights are included in this GitHub repository.
+The MIT License applies to this repository's source code only. The Llama base
+model and the three adapter repositories required for inference are distributed
+separately and remain subject to their respective licenses and access terms.
