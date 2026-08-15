@@ -1,6 +1,6 @@
 # DermL2V Inference Data Manifest
 
-Prepared on 2026-07-18 for the standalone `DermL2V_inference` package.
+Prepared on 2026-07-18 for the standalone `DermL2V` inference repository.
 
 The RT-full test files were copied from the local benchmark root and renamed
 using the abbreviations recorded in `local_info/local_path.md`.

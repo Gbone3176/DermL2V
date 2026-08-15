@@ -2,7 +2,7 @@
 
 This file mirrors the corpus/query construction used by the repository's
 nonhomogeneous RT full-evaluation scripts, while keeping the helper local to
-DermL2V_inference for standalone inference runs.
+DermL2V for standalone inference runs.
 """
 
 from __future__ import annotations

@@ -18,7 +18,7 @@ companion Hugging Face repository.
 Bundled DermL2V checkpoint:
 
 ```text
-DermL2V_inference/weights/DermL2V_adapter
+weights/DermL2V_adapter
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ DermL2V_inference/weights/DermL2V_adapter
 From the repository root:
 
 ```bash
-python DermL2V_inference/infer_derml2v.py \
+python infer_derml2v.py \
   --base_model_name_or_path /path/to/Meta-Llama-3.1-8B-Instruct \
   --peft_model_name_or_path /path/to/llm2vec-mntp \
   --supervised_model_name_or_path /path/to/llm2vec-mntp-supervised \
@@ -37,7 +37,7 @@ python DermL2V_inference/infer_derml2v.py \
 For a different checkpoint:
 
 ```bash
-python DermL2V_inference/infer_derml2v.py \
+python infer_derml2v.py \
   --checkpoint_dir /path/to/DermL2V_adapter \
   --text "A new erythematous scaly plaque on sun-exposed skin."
 ```
@@ -55,7 +55,7 @@ Run the four default nonhomogeneous retrieval test sets with the local `l2v`
 environment:
 
 ```bash
-CUDA_VISIBLE_DEVICES=4 python DermL2V_inference/infer_derml2v.py \
+CUDA_VISIBLE_DEVICES=4 python infer_derml2v.py \
   --base_model_name_or_path /path/to/Meta-Llama-3.1-8B-Instruct \
   --peft_model_name_or_path /path/to/llm2vec-mntp \
   --supervised_model_name_or_path /path/to/llm2vec-mntp-supervised \
@@ -67,7 +67,7 @@ CUDA_VISIBLE_DEVICES=4 python DermL2V_inference/infer_derml2v.py \
 The default output directory is:
 
 ```text
-DermL2V_inference/results/rt_full/DermL2V_rt_full
+results/rt_full/DermL2V_rt_full
 ```
 
 The RT mode loads the model once, encodes query and document sides for each
